@@ -12,12 +12,6 @@ tags: [java,多线程]
 
 <!--more-->
 
-## music
-
-<center>
-  <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=90% height=100 src="https://music.daoapp.io/iframe?song=441618542&qssl=1&qlrc=0&narrow=1&autoplay=1"></iframe>
-</center>
-
 - - -
 
 ## content

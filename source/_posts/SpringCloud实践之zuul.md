@@ -1,7 +1,7 @@
 ---
 title: SpringCloud实践之Zuul
 categories: 技术
-tags: [java,spring cloud,网关]
+tags: [java,springcloud,网关]
 ---
 
 ## start

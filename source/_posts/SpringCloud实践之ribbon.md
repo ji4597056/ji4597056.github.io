@@ -211,7 +211,7 @@ public interface ServiceInstanceChooser {
 &emsp;&emsp;根据`LoadBalancerClient`的接口设计,我们大致了解了处理请求的过程为:通过`serviceId`从服务地址列表中根据策略获取`ServiceInstance`->重构原始url,将host转换成`ServiceInstance`的地址->发送请求.
 &emsp;&emsp;在`RibbonLoadBalancerClient`类中可以看到`LoadBalancerClient`接口的具体实现.
 ```java
-@Override
+	@Override
 	public <T> T execute(String serviceId, LoadBalancerRequest<T> request) throws IOException {
 		ILoadBalancer loadBalancer = getLoadBalancer(serviceId);
 		Server server = getServer(loadBalancer);

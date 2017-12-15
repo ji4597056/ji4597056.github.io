@@ -150,10 +150,10 @@ public class LoadBalancerInterceptor implements ClientHttpRequestInterceptor {
 }
 ```
 &emsp;&emsp;在`LoadBalancerInterceptor`我们终于看到了拦截的流程,从`HttpRequest`中获取请求url(例如`http://eureka-client/hi`),从中解析出host(`eureka-client`),然后交给`LoadBalancerClient`处理请求.
-```java
 
 #### InterceptingRequestExecution
 
+```java
 private class InterceptingRequestExecution implements ClientHttpRequestExecution {
 
 		private final Iterator<ClientHttpRequestInterceptor> iterator;

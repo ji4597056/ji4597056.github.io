@@ -6,7 +6,7 @@ tags: [java,springboot,mybatis,druid]
 
 ## start
 
-&emsp;&emsp;最近项目中需要使用`mybatis` + `druid`集成多数据源,网上有很多`mybatis`多数据源的解决方案,但是总感觉不太灵活,于是自己实践了配置方案,虽然期间遇到很多问题,但总算基本实现功能,遗憾的是由于对`spring ioc`源码没有深入的了解,有些地方代码实现的很不优雅.
+&emsp;&emsp;最近项目中需要使用`mybatis` + `druid`集成多数据源,网上有很多`mybatis`多数据源的解决方案,但是总感觉不太灵活,于是自己实践了配置方案,虽然期间遇到很多问题,但总算基本实现功能,遗憾的是由于对`spring ioc`源码没有深入的了解,有些地方代码实现的很不优雅.源码请参考[multi-datasource](https://github.com/ji4597056/multi-datasource).
 
 - - -
 

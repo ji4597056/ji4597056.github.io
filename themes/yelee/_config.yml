@@ -128,8 +128,8 @@ color_scheme: yilia
 
 highlight_style:
   #on: true
-  inline_code: 1  # Value: 0 - 9 可选
-  code_block: 1  # Value: 0 - 4 
+  inline_code: 9  # Value: 0 - 9 可选
+  code_block: 0  # Value: 0 - 4 
   # Set inline_code to style highlight text
   # Chose a highlight theme for code block
   # 通过 inline_code 切换内置文本高亮样式

@@ -92,6 +92,8 @@ public class FnvHash implements Hash {
 
 - **代码实现:**
 
+&emsp;&emsp;源码见[算法应用之一致性hash算法](https://github.com/ji4597056/algorithm-application)
+
 ```java
 public class ConsistentHashingWithVirtualNode {
 

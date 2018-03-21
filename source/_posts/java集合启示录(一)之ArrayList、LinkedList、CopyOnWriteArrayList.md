@@ -1,5 +1,5 @@
 ---
-title: java集合类启示录(一)
+title: java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList
 categories: 技术
 tags: [java,集合,数据结构]
 ---

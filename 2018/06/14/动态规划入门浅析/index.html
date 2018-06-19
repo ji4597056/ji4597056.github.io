@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;今年下半年的计划之一是刷满leetcode200题，因为以后很想往偏算法方向转型，虽然已经年纪偏大了，但是年纪大也得有梦想不是么？关于动态规划打算分两篇文章来写，这一篇主要是入门浅析，等我动态规划题目刷到一定量了，有感觉了（算法这东西虽然很多都是套路，但是通过大量练习，感觉上来了，套路自在心中），然后再写一篇高阶技巧解析。">
+<meta name="keywords" content="算法">
+<meta property="og:type" content="article">
+<meta property="og:title" content="动态规划入门浅析">
+<meta property="og:url" content="forever-and-ever.cn/2018/06/14/动态规划入门浅析/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;今年下半年的计划之一是刷满leetcode200题，因为以后很想往偏算法方向转型，虽然已经年纪偏大了，但是年纪大也得有梦想不是么？关于动态规划打算分两篇文章来写，这一篇主要是入门浅析，等我动态规划题目刷到一定量了，有感觉了（算法这东西虽然很多都是套路，但是通过大量练习，感觉上来了，套路自在心中），然后再写一篇高阶技巧解析。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-06-19T06:08:13.045Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="动态规划入门浅析">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;今年下半年的计划之一是刷满leetcode200题，因为以后很想往偏算法方向转型，虽然已经年纪偏大了，但是年纪大也得有梦想不是么？关于动态规划打算分两篇文章来写，这一篇主要是入门浅析，等我动态规划题目刷到一定量了，有感觉了（算法这东西虽然很多都是套路，但是通过大量练习，感觉上来了，套路自在心中），然后再写一篇高阶技巧解析。">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>动态规划入门浅析 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-动态规划入门浅析" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/06/14/动态规划入门浅析/" class="article-date">
+      <time datetime="2018-06-14T12:00:00.000Z" itemprop="datePublished">2018-06-14</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      动态规划入门浅析
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/算法/">算法</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;今年下半年的计划之一是刷满<code>leetcode</code>200题，因为以后很想往偏算法方向转型，虽然已经年纪偏大了，但是年纪大也得有梦想不是么？关于动态规划打算分两篇文章来写，这一篇主要是入门浅析，等我动态规划题目刷到一定量了，有感觉了（算法这东西虽然很多都是套路，但是通过大量练习，感觉上来了，套路自在心中），然后再写一篇高阶技巧解析。</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="动态规划（DP）"><a href="#动态规划（DP）" class="headerlink" title="动态规划（DP）"></a>动态规划（DP）</h3><p>&emsp;&emsp;<strong>什么是动态规划？</strong>动态规划的本质是对问题状态的定义和状态转移方程的定义。动态规划通过拆分问题，定义问题状态和状态之间的关系，使得问题能够以<strong>递推</strong>（或者说分治）的方式去解决。</p>
+<p>&emsp;&emsp;从上述描述可以看出，<strong>拆分问题</strong>才是动态规划的核心。而拆分问题，靠的就是<strong>状态的定义</strong>和<strong>状态转移方程的定义</strong>。</p>
+<p>&emsp;&emsp;写到这里，不仅身为读者的你很懵逼，我自己也挺懵逼的，但是毕竟写文章嘛，先搞点装逼的术语镇场面，下面从实际问题出发，再来感知这些概念。</p>
+<h3 id="leetcode-198（House-Robber）"><a href="#leetcode-198（House-Robber）" class="headerlink" title="leetcode 198（House Robber）"></a>leetcode 198（House Robber）</h3><p>&emsp;&emsp;<code>leetcode</code>第198题：你是一个专业的小偷，计划偷窃沿街的房屋。每间房内都藏有一定的现金，影响你偷窃的唯一制约因素就是相邻的房屋装有相互连通的防盗系统，如果两间相邻的房屋在同一晚上被小偷闯入，系统会自动报警。给定一个代表每个房屋存放金额的非负整数数组，计算你在不触动警报装置的情况下，能够偷窃到的最高金额。</p>
+<p>&emsp;&emsp;示例一:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">输入: [1,2,3,1]</div><div class="line">输出: 4</div><div class="line">解释: 偷窃 1 号房屋 (金额 = 1) ，然后偷窃 3 号房屋(金额 = 3)。偷窃到的最高金额 = 1 + 3 = 4 。</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;示例二:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">输入: [2,7,9,3,1]</div><div class="line">输出: 12</div><div class="line">解释: 偷窃 1 号房屋 (金额 = 2)，偷窃 3 号房屋(金额 = 9)，接着偷窃 5 号房屋(金额 = 1)。偷窃到的最高金额 = 2 + 9 + 1 = 12 。</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;问题很形象，题目本质相当于在给定数组中取出一个或多个不相邻数，使其和最大。那么现在以动态规划的思路来解决该问题，首先为了拆分问题，我们需要找到针对该问题状态的定义以及状态转移方程。假设从最后一家店铺开始抢，那么只会遇到2种情况，即：抢这家店和下下家店，或者不抢这家店。</p>
+<ul>
+<li>状态：F(i)表示打劫到第i间房屋（0～i）时累计取得的金钱最大值</li>
+<li>状态转移方程：F(i) = max(F(i-1), F(i-2) + nums[i])</li>
+</ul>
+<p>&emsp;&emsp;根据上述分析，可以很自然地想到使用递归方法解决问题：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 暴力穷举</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">rob1</span><span class="params">(<span class="keyword">int</span>[] nums)</span> </span>&#123;</div><div class="line">      <span class="keyword">return</span> search1(nums, nums.length - <span class="number">1</span>);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">search1</span><span class="params">(<span class="keyword">int</span>[] nums, <span class="keyword">int</span> idx)</span> </span>&#123;</div><div class="line">      <span class="comment">// 自顶向下</span></div><div class="line">      <span class="keyword">if</span> (nums.length == <span class="number">0</span> || idx &lt; <span class="number">0</span>) &#123;</div><div class="line">          <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">int</span> s1 = search1(nums, idx - <span class="number">2</span>) + nums[idx];    <span class="comment">// 选该idx</span></div><div class="line">      <span class="keyword">int</span> s2 = search1(nums, idx - <span class="number">1</span>);    <span class="comment">// 不选该idx</span></div><div class="line">      <span class="keyword">return</span> Math.max(s1, s2);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="meta">@Test</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test1</span><span class="params">()</span> </span>&#123;</div><div class="line">      Assert.assertEquals(<span class="number">4</span>, rob1(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">      Assert.assertEquals(<span class="number">12</span>, rob1(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">2</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">      Assert.assertEquals(<span class="number">2</span>, rob1(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>&#125;));</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上述代码能够解决该问题，但缺点是性能特别差，因为涉及到大量的重复计算，每次计算F(i)，都需要计算F(i-1)和F(i-2)，由于没有保存中间结果，每次都需要递归计算一遍。下面进行优化：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 保存状态递归</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">rob2</span><span class="params">(<span class="keyword">int</span>[] nums)</span> </span>&#123;</div><div class="line">      <span class="keyword">int</span>[] result = <span class="keyword">new</span> <span class="keyword">int</span>[nums.length];</div><div class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; result.length; i++) &#123;</div><div class="line">          result[i] = -<span class="number">1</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">return</span> search2(nums, nums.length - <span class="number">1</span>, result);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">search2</span><span class="params">(<span class="keyword">int</span>[] nums, <span class="keyword">int</span> idx, <span class="keyword">int</span>[] result)</span> </span>&#123;</div><div class="line">      <span class="keyword">if</span> (nums.length == <span class="number">0</span> || idx &lt; <span class="number">0</span>) &#123;</div><div class="line">          <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">if</span> (result[idx] &gt;= <span class="number">0</span>) &#123;</div><div class="line">          <span class="keyword">return</span> result[idx];</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">int</span> s1 = search2(nums, idx - <span class="number">2</span>, result) + nums[idx];</div><div class="line">      <span class="keyword">int</span> s2 = search2(nums, idx - <span class="number">1</span>, result);</div><div class="line">      result[idx] = Math.max(s1, s2);</div><div class="line">      <span class="keyword">return</span> result[idx];</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="meta">@Test</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test2</span><span class="params">()</span> </span>&#123;</div><div class="line">      Assert.assertEquals(<span class="number">4</span>, rob2(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">      Assert.assertEquals(<span class="number">12</span>, rob2(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">2</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">      Assert.assertEquals(<span class="number">2</span>, rob2(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>&#125;));</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上述代码通过使用数组保存中间计算结果解决了重复计算导致性能较差的问题。下面转换成自底向上的递推写法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 保存状态递推</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">rob3</span><span class="params">(<span class="keyword">int</span>[] nums)</span> </span>&#123;</div><div class="line">      <span class="keyword">return</span> search3(nums);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">search3</span><span class="params">(<span class="keyword">int</span>[] nums)</span> </span>&#123;</div><div class="line">      <span class="comment">// 自底向上</span></div><div class="line">      <span class="keyword">if</span> (nums.length == <span class="number">0</span>) &#123;</div><div class="line">          <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">if</span> (nums.length == <span class="number">1</span>) &#123;</div><div class="line">          <span class="keyword">return</span> nums[<span class="number">0</span>];</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">int</span>[] result = <span class="keyword">new</span> <span class="keyword">int</span>[nums.length];</div><div class="line">      result[<span class="number">0</span>] = nums[<span class="number">0</span>];</div><div class="line">      result[<span class="number">1</span>] = Math.max(nums[<span class="number">0</span>], nums[<span class="number">1</span>]);</div><div class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt; nums.length; i++) &#123;</div><div class="line">          result[i] = Math.max(result[i - <span class="number">1</span>], result[i - <span class="number">2</span>] + nums[i]);</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">return</span> result[nums.length - <span class="number">1</span>];</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="meta">@Test</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test3</span><span class="params">()</span> </span>&#123;</div><div class="line">      Assert.assertEquals(<span class="number">4</span>, rob3(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">      Assert.assertEquals(<span class="number">12</span>, rob3(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">2</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">      Assert.assertEquals(<span class="number">2</span>, rob3(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>&#125;));</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;虽然上述递推写法和之前的递归写法时间复杂度是一样，但一般情况下，但是由于递归涉及到方法调用的开销，性能上是比递推较差的。那么还有优化的余地么？观察到状态转移方程：<code>F(i) = max(F(i-1), F(i-2) + nums[i])</code>，在递推过程中只需要保存前两项结果即可，下面使用滚动数组的技巧优化空间复杂度：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">search4</span><span class="params">(<span class="keyword">int</span>[] nums)</span> </span>&#123;</div><div class="line">    <span class="comment">// 自底向上</span></div><div class="line">    <span class="keyword">if</span> (nums.length == <span class="number">0</span>) &#123;</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (nums.length == <span class="number">1</span>) &#123;</div><div class="line">        <span class="keyword">return</span> nums[<span class="number">0</span>];</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 只用长度为2的数组</span></div><div class="line">    <span class="keyword">int</span>[] result = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">2</span>];</div><div class="line">    result[<span class="number">0</span>] = nums[<span class="number">0</span>];</div><div class="line">    result[<span class="number">1</span>] = Math.max(nums[<span class="number">0</span>], nums[<span class="number">1</span>]);</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt; nums.length; i++) &#123;</div><div class="line">        result[i % <span class="number">2</span>] = Math.max(result[(i - <span class="number">1</span>) % <span class="number">2</span>], result[(i - <span class="number">2</span>) % <span class="number">2</span>] + nums[i]);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> Math.max(result[<span class="number">0</span>], result[<span class="number">1</span>]);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test4</span><span class="params">()</span> </span>&#123;</div><div class="line">    Assert.assertEquals(<span class="number">4</span>, rob4(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">    Assert.assertEquals(<span class="number">12</span>, rob4(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">2</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">    Assert.assertEquals(<span class="number">2</span>, rob4(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>&#125;));</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上述代码已经是时间复杂度和空间复杂度权衡下的最优解，继续简化代码得到最终代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">rob</span><span class="params">(<span class="keyword">int</span>[] nums)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> prev = <span class="number">0</span>, curr = <span class="number">0</span>;</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> n : nums) &#123;</div><div class="line">        <span class="keyword">int</span> tmp = curr;</div><div class="line">        curr = Math.max(prev + n, curr);</div><div class="line">        prev = tmp;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> curr;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test5</span><span class="params">()</span> </span>&#123;</div><div class="line">    Assert.assertEquals(<span class="number">4</span>, rob(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">    Assert.assertEquals(<span class="number">12</span>, rob(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">2</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">3</span>, <span class="number">1</span>&#125;));</div><div class="line">    Assert.assertEquals(<span class="number">2</span>, rob(<span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>&#125;));</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;在分析出状态转移方程后，现在完整地概括下以上逐步优化代码的思路（套路）。</p>
+<ol>
+<li>设计暴力递归算法，找到冗余</li>
+<li>设计并存储状态（一维，二维，三维数组，甚至map）</li>
+<li>使用递归式（状态转移方程）</li>
+<li>自底向上计算最优解（其中可能涉及到空间复杂度的优化）</li>
+</ol>
+<p>&emsp;&emsp;既然基本套路已经掌握，那么来练习下用动态规划解决斐波拉契数列问题。<code>F(0) = 0，F(1) = 1，F(n) = F(n-1) + F(n-2)（n&gt;=2，n∈N*）</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">fibonacci</span><span class="params">(<span class="keyword">int</span> n)</span> </span>&#123;</div><div class="line">       <span class="keyword">if</span> (n &lt;= <span class="number">0</span>) &#123;</div><div class="line">           <span class="keyword">return</span> <span class="number">0L</span>;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">if</span> (n == <span class="number">1</span>) &#123;</div><div class="line">           <span class="keyword">return</span> <span class="number">1L</span>;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">long</span> pre1 = <span class="number">0L</span>;</div><div class="line">       <span class="keyword">long</span> pre2 = <span class="number">1L</span>;</div><div class="line">       <span class="comment">// 递推</span></div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt;= n; i++) &#123;</div><div class="line">           <span class="keyword">long</span> tmp = pre2;</div><div class="line">           pre2 = pre1 + pre2;</div><div class="line">           pre1 = tmp;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">return</span> pre2;</div><div class="line">   &#125;</div><div class="line"></div><div class="line">   <span class="comment">// 递归实现(涉及到太多重复计算,性能较差)</span></div><div class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">fibonacci1</span><span class="params">(<span class="keyword">int</span> n)</span> </span>&#123;</div><div class="line">       <span class="keyword">if</span> (n &lt;= <span class="number">0</span>) &#123;</div><div class="line">           <span class="keyword">return</span> <span class="number">0L</span>;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">if</span> (n == <span class="number">1</span>) &#123;</div><div class="line">           <span class="keyword">return</span> <span class="number">1L</span>;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">return</span> fibonacci1(n - <span class="number">1</span>) + fibonacci1(n - <span class="number">2</span>);</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp; 是不是很简单呢？摸索出原问题的解如何由子问题组合而成，就能把状态转移方程写出来，然后就套路一波，使用<strong>自顶向下</strong>的递归方法或者<strong>自底向上</strong>的递推方法，问题就迎刃而解啦。这里比较下这两种方式：</p>
+<p><strong>自顶向下</strong></p>
+<ol>
+<li>能方便的得到递归公式，并用递归函数实现</li>
+<li>保持了递归实现的代码结构，逻辑上容易理解</li>
+<li>过程中只计算需要计算的子结果</li>
+<li>当采用了caching技术时多次被调用时天然的复用之前被调用时的子结果（比如连续两次计算斐波拉契数F(4)，F(5)，则计算F(5)时已知F(3)和F(4)，直接相加即可）</li>
+</ol>
+<p><strong>自底向上</strong></p>
+<ol>
+<li>需要设计数据结构来完成自底向上的计算过程，逻辑上相对不那么直</li>
+<li>常常可以进行空间复杂度的优化（比如斐波拉契数列可以优化为只使用两个变量的额外存储空间，0-1背包问题可以优化为O(n)的空间复杂度）</li>
+<li>若进行了空间优化，则连续多次被调用时无法复用之前被调用的子结果</li>
+</ol>
+<h3 id="leetcode-322（Coin-Change）"><a href="#leetcode-322（Coin-Change）" class="headerlink" title="leetcode 322（Coin Change）"></a>leetcode 322（Coin Change）</h3><p>&emsp;&emsp;再来一题目，热身一下。</p>
+<p>&emsp;&emsp;<code>leetcode</code>第322题：给定不同面额的硬币 coins 和一个总金额 amount。编写一个函数来计算可以凑成总金额所需的最少的硬币个数。如果没有任何一种硬币组合能组成总金额，返回 -1。你可以认为每种硬币的数量是无限的。</p>
+<p>&emsp;&emsp;示例一:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">输入: coins = [1, 2, 5], amount = 11</div><div class="line">输出: 3 </div><div class="line">解释: 11 = 1 + 5 + 5</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;示例二:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">输入: coins = [2], amount = 3</div><div class="line">输出: -1</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;乍一看，一脸懵逼，套用之前解决动态规划问题的思路，还是按步骤先定义状态，再写出状态转移方程。可以分析出，选取硬币时，要么选用当前idx位置的硬币，要么不选用当前idx位置的硬币。</p>
+<ul>
+<li>状态：F(idx，amount)表示遍历到coins数组第idx个位置时且剩余总金额为s时，使用最少的硬币个数。</li>
+<li>状态转移方程：F(idx, s) = min(F(idx,  s - coins[idx]) + 1, F(idx + 1, s)) (idx &lt; coins.length &amp;&amp; s &gt; =0)</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 缓存计算结果数组</span></div><div class="line">   <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> RESULT[][] = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">coinChange1</span><span class="params">(<span class="keyword">int</span>[] coins, <span class="keyword">int</span> amount)</span> </span>&#123;</div><div class="line">       RESULT = <span class="keyword">new</span> <span class="keyword">int</span>[coins.length][amount + <span class="number">1</span>];</div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; coins.length; i++) &#123;</div><div class="line">           <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt;= amount; j++) &#123;</div><div class="line">               RESULT[i][j] = Integer.MAX_VALUE;</div><div class="line">           &#125;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">return</span> search1(<span class="number">0</span>, amount, coins);</div><div class="line">   &#125;</div><div class="line"></div><div class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">search1</span><span class="params">(<span class="keyword">int</span> idx, <span class="keyword">int</span> s, <span class="keyword">int</span>[] coins)</span> </span>&#123;</div><div class="line">       <span class="keyword">if</span> (s == <span class="number">0</span>) &#123;</div><div class="line">           <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">if</span> (idx &gt;= coins.length || s &lt; <span class="number">0</span>) &#123;</div><div class="line">           <span class="keyword">return</span> -<span class="number">1</span>;</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">if</span> (RESULT[idx][s] != Integer.MAX_VALUE) &#123;</div><div class="line">           <span class="keyword">return</span> RESULT[idx][s];</div><div class="line">       &#125;</div><div class="line">       <span class="comment">// 选取idx硬币</span></div><div class="line">       <span class="keyword">int</span> a = search1(idx, s - coins[idx], coins);</div><div class="line">       a = a == -<span class="number">1</span> ? -<span class="number">1</span> : a + <span class="number">1</span>;</div><div class="line">       <span class="comment">// 不选idx硬币</span></div><div class="line">       <span class="keyword">int</span> b = search1(idx + <span class="number">1</span>, s, coins);</div><div class="line">       RESULT[idx][s] = a != -<span class="number">1</span> &amp;&amp; b != -<span class="number">1</span> ? Math.min(a, b) : Math.max(a, b);</div><div class="line">       <span class="keyword">return</span> RESULT[idx][s];</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;写出上述代码后，继续思考如何用递推的方式优化空间复杂度，因为这种写法开辟了一个二维数组，空间复杂度是很高，虽然能够解决问题，那么到底有没有必要呢？</p>
+<p>&emsp;&emsp;<code>leetcode</code>的解决方案给出的状态转移方程是：<code>F(s) = F(s−c) + 1</code>，其中s表示剩余总金额，c表示最后选取的硬币金额。根据这一状态转移方程，可以写出如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 自顶向下</span></div><div class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">coinChange</span><span class="params">(<span class="keyword">int</span>[] coins, <span class="keyword">int</span> amount)</span> </span>&#123;        </div><div class="line">       <span class="keyword">if</span> (amount &lt; <span class="number">1</span>) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">       <span class="keyword">return</span> coinChange(coins, amount, <span class="keyword">new</span> <span class="keyword">int</span>[amount]);</div><div class="line">   &#125;</div><div class="line"></div><div class="line">   <span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">coinChange</span><span class="params">(<span class="keyword">int</span>[] coins, <span class="keyword">int</span> rem, <span class="keyword">int</span>[] count)</span> </span>&#123;</div><div class="line">       <span class="keyword">if</span> (rem &lt; <span class="number">0</span>) <span class="keyword">return</span> -<span class="number">1</span>;</div><div class="line">       <span class="keyword">if</span> (rem == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">       <span class="keyword">if</span> (count[rem - <span class="number">1</span>] != <span class="number">0</span>) <span class="keyword">return</span> count[rem - <span class="number">1</span>];</div><div class="line">       <span class="keyword">int</span> min = Integer.MAX_VALUE;</div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> coin : coins) &#123;</div><div class="line">           <span class="keyword">int</span> res = coinChange(coins, rem - coin, count);</div><div class="line">           <span class="keyword">if</span> (res &gt;= <span class="number">0</span> &amp;&amp; res &lt; min)</div><div class="line">               min = <span class="number">1</span> + res;</div><div class="line">       &#125;</div><div class="line">       count[rem - <span class="number">1</span>] = (min == Integer.MAX_VALUE) ? -<span class="number">1</span> : min;</div><div class="line">       <span class="keyword">return</span> count[rem - <span class="number">1</span>];</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 自底向上</span></div><div class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">coinChange</span><span class="params">(<span class="keyword">int</span>[] coins, <span class="keyword">int</span> amount)</span> </span>&#123;</div><div class="line">       <span class="keyword">int</span>[] dp = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">1</span> + amount];</div><div class="line">       Arrays.fill(dp, -<span class="number">1</span>);</div><div class="line">       dp[<span class="number">0</span>] = <span class="number">0</span>;</div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= amount; ++i) &#123;</div><div class="line">           <span class="keyword">int</span> min = Integer.MAX_VALUE;</div><div class="line">           <span class="comment">// find the minimum one.</span></div><div class="line">           <span class="keyword">for</span> (<span class="keyword">int</span> c : coins) &#123;</div><div class="line">               <span class="keyword">if</span> (i &gt;= c &amp;&amp; -<span class="number">1</span> != dp[i - c]) &#123;</div><div class="line">                   min = Math.min(min, dp[i - c]);</div><div class="line">               &#125;</div><div class="line">           &#125;</div><div class="line">           <span class="keyword">if</span> (Integer.MAX_VALUE != min) &#123;</div><div class="line">               dp[i] = <span class="number">1</span> + min;</div><div class="line">           &#125;</div><div class="line">       &#125;</div><div class="line"></div><div class="line">       <span class="keyword">return</span> dp[amount];</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上述代码是不是和之前题目自顶向下以及自底向上的写法很像呢，区别也很明显，多了一级for循环遍历，所以这是一道搜索的动态规划问题。相比我之前的写法，二维数组降低为一维数组保存中间状态结果确实是很大的空间优化，注意这里自底向上的递推写法，根据状态转移方程，无法像之前题目一样继续优化空间复杂度。另外，可以看出<strong>一个问题可能有多种不同的状态定义和状态转移方程定义</strong>，选用合理的状态定义和状态转移方程可以避免无意义的空间消耗。</p>
+<p>&emsp;&emsp;引用网上大神的语录作为结尾，<strong>一个问题是该用递推、贪心、搜索还是动态规划，完全是由这个问题本身阶段间状态的转移方式决定的！</strong></p>
+<ul>
+<li>每个阶段只有一个状态-&gt;递推</li>
+<li>每个阶段的最优状态都是由上一个阶段的最优状态得到的-&gt;贪心</li>
+<li>每个阶段的最优状态是由之前所有阶段的状态的组合得到的-&gt;搜索</li>
+<li>每个阶段的最优状态可以从之前某个阶段的某个或某些状态直接得到而不管之前这个状态是如何得到的-&gt;动态规划</li>
+</ul>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;动态规划问题我只是初窥门径，还是需要大量做题才可能掌握门道，以后会多更新算法方面的文章。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2018-06-14, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 14:08:13</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/06/14/动态规划入门浅析/" title="动态规划入门浅析">forever-and-ever.cn/2018/06/14/动态规划入门浅析/</a>
+            <span class="copy-path" data-clipboard-text="原文: forever-and-ever.cn/2018/06/14/动态规划入门浅析/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/05/20/Spring循环依赖解析/">
+                    Spring循环依赖解析
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#动态规划（DP）"><span class="toc-number">2.1.</span> <span class="toc-text">动态规划（DP）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#leetcode-198（House-Robber）"><span class="toc-number">2.2.</span> <span class="toc-text">leetcode 198（House Robber）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#leetcode-322（Coin-Change）"><span class="toc-number">2.3.</span> <span class="toc-text">leetcode 322（Coin Change）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.4.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"动态规划入门浅析　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/" title="回到主页"><i class="fa fa-home"></i></a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/05/20/Spring循环依赖解析/" title="下一篇: Spring循环依赖解析">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/20/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/02/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/24/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/17/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/02/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/01/16/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/30/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/14/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/06/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/03/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/15/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/11/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/29/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/27/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/07/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/03/13/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

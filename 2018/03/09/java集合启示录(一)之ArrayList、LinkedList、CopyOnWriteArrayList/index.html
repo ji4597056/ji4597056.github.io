@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;开个系列坑打算细致研究下java集合类(基于java8版本),虽然以前或多或少看过部分集合类源码,但是一般都是因为使用过程中遇到问题或者单纯地为了面试.这次开坑的目的,不带有那么强的目的性,只为研究学习.当然我所谓地学习,并不只是分析学习这些java集合类的设计原理细节,更重要地是体会设计背后的思想.细节可能会时间地流逝而渐渐淡忘,但是思想会慢慢沉淀、愈加深刻.">
+<meta name="keywords" content="java,数据结构,集合">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList">
+<meta property="og:url" content="forever-and-ever.cn/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;开个系列坑打算细致研究下java集合类(基于java8版本),虽然以前或多或少看过部分集合类源码,但是一般都是因为使用过程中遇到问题或者单纯地为了面试.这次开坑的目的,不带有那么强的目的性,只为研究学习.当然我所谓地学习,并不只是分析学习这些java集合类的设计原理细节,更重要地是体会设计背后的思想.细节可能会时间地流逝而渐渐淡忘,但是思想会慢慢沉淀、愈加深刻.">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://okzr61x6y.bkt.clouddn.com/LinkedList%E7%BB%93%E6%9E%84.png">
+<meta property="og:updated_time" content="2018-06-18T20:52:01.088Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;开个系列坑打算细致研究下java集合类(基于java8版本),虽然以前或多或少看过部分集合类源码,但是一般都是因为使用过程中遇到问题或者单纯地为了面试.这次开坑的目的,不带有那么强的目的性,只为研究学习.当然我所谓地学习,并不只是分析学习这些java集合类的设计原理细节,更重要地是体会设计背后的思想.细节可能会时间地流逝而渐渐淡忘,但是思想会慢慢沉淀、愈加深刻.">
+<meta name="twitter:image" content="http://okzr61x6y.bkt.clouddn.com/LinkedList%E7%BB%93%E6%9E%84.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/" class="article-date">
+      <time datetime="2018-03-09T12:00:00.000Z" itemprop="datePublished">2018-03-09</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/集合/">集合</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;开个系列坑打算细致研究下java集合类(基于java8版本),虽然以前或多或少看过部分集合类源码,但是一般都是因为使用过程中遇到问题或者单纯地为了面试.这次开坑的目的,不带有那么强的目的性,只为研究学习.当然我所谓地学习,并不只是分析学习这些java集合类的设计原理细节,更重要地是体会设计背后的思想.细节可能会时间地流逝而渐渐淡忘,但是思想会慢慢沉淀、愈加深刻.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h3><p>&emsp;&emsp;既然是系列坑的开篇,那么就来一起探究一下集合类中<code>List</code>接口的实现 类:<code>ArrayList</code>、<code>LinkedList</code>、<code>CopyOnWriteArrayList</code>的设计原理吧.</p>
+<h3 id="ArrayList"><a href="#ArrayList" class="headerlink" title="ArrayList"></a>ArrayList</h3><h4 id="基本介绍"><a href="#基本介绍" class="headerlink" title="基本介绍"></a>基本介绍</h4><p>&emsp;&emsp;<code>ArrayList</code>就是一个底层以数组结构实现的集合,区别于数组初始化时必须设定固定的长度,<code>ArrayList</code>好比于动态数组,提供了自动扩容的功能.<code>ArrayList</code>内部使用<code>Object[] elementData</code>存放元素,当需要扩容时只需要重新创建一个容量为原数组容量1.5倍(<code>newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1)</code>)的新数组,并且把原数组上的元素依次顺序拷贝到新数组上.</p>
+<ul>
+<li>允许NULL,有序,允许重复数据,非线程安全</li>
+<li>比较适合顺序添加、随机访问的场景</li>
+<li>插入和删除时需要元素复制的过程,比较费性能</li>
+</ul>
+<h4 id="源码细节"><a href="#源码细节" class="headerlink" title="源码细节"></a>源码细节</h4><h5 id="扩容"><a href="#扩容" class="headerlink" title="扩容"></a>扩容</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">grow</span><span class="params">(<span class="keyword">int</span> minCapacity)</span> </span>&#123;</div><div class="line">    <span class="comment">// overflow-conscious code</span></div><div class="line">    <span class="keyword">int</span> oldCapacity = elementData.length;</div><div class="line">    <span class="comment">// 以前java版本为newCapacity = oldCapacity * 3 / 2;位运算符速度更快</span></div><div class="line">    <span class="keyword">int</span> newCapacity = oldCapacity + (oldCapacity &gt;&gt; <span class="number">1</span>);</div><div class="line">    <span class="comment">// 以防newCapacity溢出</span></div><div class="line">    <span class="keyword">if</span> (newCapacity - minCapacity &lt; <span class="number">0</span>)</div><div class="line">        newCapacity = minCapacity;</div><div class="line">    <span class="keyword">if</span> (newCapacity - MAX_ARRAY_SIZE &gt; <span class="number">0</span>)</div><div class="line">        newCapacity = hugeCapacity(minCapacity);</div><div class="line">    <span class="comment">// minCapacity is usually close to size, so this is a win:</span></div><div class="line">    elementData = Arrays.copyOf(elementData, newCapacity);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h5 id="fail-fast"><a href="#fail-fast" class="headerlink" title="fail-fast"></a>fail-fast</h5><p>&emsp;&emsp;<code>fail-fast</code>机制是一种错误检测机制.当多个线程对同一个集合的进行操作并产生集合中元素结构变化时,就可能会产生<code>fail-fast</code>事件.例如:当某一个线程A通过<code>iterator</code>去遍历某集合的过程中,若该集合元素结构被其他线程所改变了,那么线程A访问集合时,就会抛出<code>ConcurrentModificationException</code>异常.这里所说的改变元素结构的操作指如添加元素、插入元素、删除元素这些会改变集合元素数量的操作,而修改元素不会改变集合元素数量,因此不会引发<code>fail-fast</code>机制.</p>
+<p>&emsp;&emsp;<code>ArrayList</code>中通过成员变量<code>protected transient int modCount = 0;</code>作为在遍历集合过程中是否会触发<code>fail-fast</code>机制的标识.这里以<code>remove</code>和<code>replaceAll</code>方法作为说明:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> E <span class="title">remove</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</div><div class="line">       rangeCheck(index); <span class="comment">//检查index是否越界</span></div><div class="line">       modCount++; <span class="comment">// 操作数+1</span></div><div class="line">       E oldValue = elementData(index);</div><div class="line">       <span class="keyword">int</span> numMoved = size - index - <span class="number">1</span>;</div><div class="line">       <span class="keyword">if</span> (numMoved &gt; <span class="number">0</span>)</div><div class="line">           System.arraycopy(elementData, index+<span class="number">1</span>, elementData, index,</div><div class="line">                            numMoved);</div><div class="line">       elementData[--size] = <span class="keyword">null</span>; <span class="comment">// clear to let GC do its work</span></div><div class="line">       <span class="keyword">return</span> oldValue;</div><div class="line">   &#125;</div><div class="line">   </div><div class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">replaceAll</span><span class="params">(UnaryOperator&lt;E&gt; operator)</span> </span>&#123;</div><div class="line">       Objects.requireNonNull(operator);</div><div class="line">       <span class="keyword">final</span> <span class="keyword">int</span> expectedModCount = modCount; <span class="comment">// 获取当前操作数作为期待值</span></div><div class="line">       <span class="keyword">final</span> <span class="keyword">int</span> size = <span class="keyword">this</span>.size;</div><div class="line">       <span class="comment">// 在遍历过程中,每次操作都判断当前操作数是否与期待值相同</span></div><div class="line">       <span class="comment">// 若不同,说明在遍历过程中发生了改变集合结构的操作,因此引发fail-fast</span></div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; modCount == expectedModCount &amp;&amp; i &lt; size; i++) &#123;</div><div class="line">           elementData[i] = operator.apply((E) elementData[i]);</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">if</span> (modCount != expectedModCount) &#123;</div><div class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException();</div><div class="line">       &#125;</div><div class="line">       modCount++;</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;需要说明的是,这里的<code>modCount</code>并没有任何线程安全性的保证,所以在并发场景下,当多个操作使集合元素结构发生变化时,仅仅<strong>可能</strong>产生<code>fail-fast</code>事件,而不是一定会产生.这里我想法的是:如果给<code>modeCount</code>加锁必然会对性能有影响,并且<code>ArrayList</code>设计的初衷并不是用于高并发场景,高并发场景应考虑其他集合类,所以这里仅保证了单线程下的快速失败机制.</p>
+<h5 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h5><p>&emsp;&emsp;查看源码发现<code>private transient Object[] elementData;</code>,这里修饰存放集合元素的数组用了<code>transient</code>关键字.用<code>transient</code>修饰<code>elementData</code>意味着不希望<code>elementData</code>数组被序列化.这是因为实际元素数量一定是小于等于数组长度的,很多情况下元素数小于数组长度,那么序列化整个数组显然没有必要.因此<code>ArrayList</code>中重写了<code>writeObject</code>方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">writeObject</span><span class="params">(java.io.ObjectOutputStream s)</span></span></div><div class="line"><span class="function">       <span class="keyword">throws</span> java.io.IOException</span>&#123;</div><div class="line">       <span class="comment">// Write out element count, and any hidden stuff</span></div><div class="line">       <span class="keyword">int</span> expectedModCount = modCount;</div><div class="line">       s.defaultWriteObject(); <span class="comment">// 序列化非transient元素</span></div><div class="line">       <span class="comment">// Write out size as capacity for behavioural compatibility with clone()</span></div><div class="line">       s.writeInt(size); <span class="comment">// 写size(实际长度)</span></div><div class="line">       <span class="comment">// Write out all elements in the proper order.</span></div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;size; i++) &#123;</div><div class="line">           s.writeObject(elementData[i]); <span class="comment">// 写实际元素</span></div><div class="line">       &#125;</div><div class="line">       <span class="keyword">if</span> (modCount != expectedModCount) &#123;</div><div class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException(); <span class="comment">// 快速失败保证序列化过程中不改变集合元素结构</span></div><div class="line">       &#125;</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<h3 id="LinkedList"><a href="#LinkedList" class="headerlink" title="LinkedList"></a>LinkedList</h3><h4 id="基本介绍-1"><a href="#基本介绍-1" class="headerlink" title="基本介绍"></a>基本介绍</h4><p>&emsp;&emsp;<code>LinkedList</code>是基于双向链表实现的.不同于数组按线性的顺序存储数据,是在每个节点里存放前后节点的指针,可以充分利用计算机内存空间,实现灵活的内存动态管理.但是链表失去了数组随机读取的优点,同时链表由于增加了节点的指针域,空间开销比较大.<br><img src="http://okzr61x6y.bkt.clouddn.com/LinkedList%E7%BB%93%E6%9E%84.png" alt="LinkedList结构图示"></p>
+<ul>
+<li>允许NULL,有序,允许重复数据,非线程安全</li>
+<li>顺序添加元素效率比<code>ArrayList</code>较低,因为需要<code>new</code>一个节点对象,有性能开销</li>
+<li>插入、删除元素一般效率比<code>ArrayList</code>较高(<code>ArrayList</code>慢在数组元素的批量拷贝以及扩容),但不绝对(<code>LinkedList</code>寻址较慢,若插入/删除位置靠后,此时<code>ArrayList</code>由于需要批量拷贝的元素较少,效率可能高于<code>LinkedList</code>).</li>
+<li><code>LinkedList</code>实现了<code>Deque</code>(Double-ended Queue)接口,因此可以当做非线程安全的队列或栈使用.</li>
+</ul>
+<h4 id="源码细节-1"><a href="#源码细节-1" class="headerlink" title="源码细节"></a>源码细节</h4><p>&emsp;&emsp;查看<code>LinkedList</code>源码,对于集合的操作主要是依赖基于链表的一些基本操作,较为简单,这里不详细说明.<code>LinkedList</code>和<code>ArrayList</code>一样提供了<code>fail-fast</code>机制,也是一样的原理.下面主要说明<code>LinkedList</code>选用双向链表带来的优势.</p>
+<h5 id="定位元素位置"><a href="#定位元素位置" class="headerlink" title="定位元素位置"></a>定位元素位置</h5><p>&emsp;&emsp;<code>LinkedList</code>提供了根据<code>index</code>插入、删除元素.(<code>add(int index, E element)</code>、<code>remove(int index)</code>).如果使用单链表,那么只能从链表的头节点开始遍历,若需要操作的元素在链表较后的位置(即<code>index</code>接近于<code>size</code>).此时几乎就等于遍历了整个链表,寻址很慢.如果使用双向链表,便可从头节点或尾节点两个方向遍历,提高了链表后半部分元素的寻址效率.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">  <span class="function">Node&lt;E&gt; <span class="title">node</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</div><div class="line">      <span class="comment">// assert isElementIndex(index);</span></div><div class="line"><span class="comment">// 通过对比index和size/2,选择从头节点或尾节点遍历</span></div><div class="line">      <span class="keyword">if</span> (index &lt; (size &gt;&gt; <span class="number">1</span>)) &#123;</div><div class="line">          Node&lt;E&gt; x = first;</div><div class="line">          <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; index; i++)</div><div class="line">              x = x.next;</div><div class="line">          <span class="keyword">return</span> x;</div><div class="line">      &#125; <span class="keyword">else</span> &#123;</div><div class="line">          Node&lt;E&gt; x = last;</div><div class="line">          <span class="keyword">for</span> (<span class="keyword">int</span> i = size - <span class="number">1</span>; i &gt; index; i--)</div><div class="line">              x = x.prev;</div><div class="line">          <span class="keyword">return</span> x;</div><div class="line">      &#125;</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<h5 id="双端队列"><a href="#双端队列" class="headerlink" title="双端队列"></a>双端队列</h5><p>&emsp;&emsp;队列是一种只允许在一端删除而在另一端插入的数据结构(先进先出).而双端队列(<code>Deque</code>)是队列的一种拓展,它可以在队列的两端进行插入和删除元素,因此是一种具有队列和栈的性质的数据结构.</p>
+<p>&emsp;&emsp;当<code>Deque</code>当做队列使用时(FIFO),出队列需要从头部删除元素(<code>removeFirst()</code>),入队列需要从尾部添加元素(<code>addLast(E e)</code>)即可.</p>
+<p>&emsp;&emsp;当<code>Deque</code>当做栈使用时,这时入栈(<code>addFirst(E e)</code>),出栈(<code>removeFirst()</code>)的元素都在双端队列的头部进行.</p>
+<h3 id="CopyOnWriteArrayList"><a href="#CopyOnWriteArrayList" class="headerlink" title="CopyOnWriteArrayList"></a>CopyOnWriteArrayList</h3><h4 id="基本介绍-2"><a href="#基本介绍-2" class="headerlink" title="基本介绍"></a>基本介绍</h4><p>&emsp;&emsp;<code>CopyOnWriteArrayList</code>是一个写时复制的容器.当在容器中增、删、改元素的时候,不直接操作当前容器,而是先将当前容器进行<strong>copy</strong>一份,复制出一个新的容器,然后对新容器进行操作,最后将原容器的引用指向新的容器.</p>
+<p>&emsp;&emsp;读取<code>CopyOnWriteArrayList</code>的时候读取的是该对象中的<code>Object[] array</code>,但是修改的时候,操作的是一个新的<code>Object[] array</code>,读和写操作的不是同一个对象,这是一种读写分离的思想,读取集合里面的数据未必是最新的数据,满足最终一致性.最终一致性对于分布式系统非常重要,它通过容忍一定时间的数据不一致,提升整个分布式系统的可用性与分区容错性,但是对于数据实时性要求非常高的场景并不适用,这种场景必须满足强一致性.</p>
+<p>&emsp;&emsp;随着<code>CopyOnWriteArrayList</code>中元素的增加,<strong>copy</strong>代价将越来越昂贵,并且在内存中会短暂时间内同时存在两个大对象(下次GC时,旧的数组占用内存会被释放).因此,<code>CopyOnWriteArrayList</code>适用于读操作远多于修改操作并且数据量不是特别大的并发场景中.</p>
+<h4 id="源码细节-2"><a href="#源码细节-2" class="headerlink" title="源码细节"></a>源码细节</h4><h5 id="线程安全性"><a href="#线程安全性" class="headerlink" title="线程安全性"></a>线程安全性</h5><p>&emsp;&emsp;<code>CopyOnWriteArrayList</code>是线程安全的,对容器进行增、删、改元素操作时通过<code>ReentrantLock</code>加锁,保证同一时间只有一个线程对集合进行操作,并且对该对象中的<code>Object[] array</code>添加了<code>volatile</code>关键字修饰,保证<code>array</code>的引用发生变化后,能立刻被所有线程感知.(<code>happen-before</code>原则)关于并发锁,这里不展开讨论,以后有机会会专门开坑详细分析.</p>
+<h5 id="对比Vector"><a href="#对比Vector" class="headerlink" title="对比Vector"></a>对比Vector</h5><p>&emsp;&emsp;说起线程安全的<code>List</code>,可能首先想到的是<code>Vector</code>.查看源码发现<code>Vector</code>是通过<code>synchronized</code>关键字修饰了几乎所有的操作方法(包括<code>get(int index)</code>、<code>size()</code>),以此保证线程安全性.所以其性能也相对较差.</p>
+<p>&emsp;&emsp;<code>Vector</code>虽然通过加锁保证各个操作是线程安全的,但它只能够保证增、删、查、改的单个操作一定是原子的,不会被打断,如果组合起来用,并不能保证这个组合操作的线程安全性.所以,<code>Vector</code>也被称作有条件的线程安全,即所有单个的操作都是线程安全的,但是多个操作组成的操作序列却可能导致数据争用,因为在操作序列中控制流取决于前面操作的结果.因此,<code>Vector</code>和<code>ArrayList</code>一样,通过<code>fail-fast</code>机制检测失败.</p>
+<p>&emsp;&emsp;<code>CopyOnWriteArrayList</code>并没有引入<code>fail-fast</code>机制(当然也不需要如此).每次遍历时使用旧的数据数组引用,在遍历过程并不会受到数组数据变化的影响,这里所说的遍历仅仅指迭代器遍历查询,在<code>CopyOnWriteArrayList</code>的迭代器中,<code>add(E e)</code>、<code>set(E e)</code>、<code>remove()</code>这些方法<code>throw new UnsupportedOperationException();</code>,即不被允许.</p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;<code>List</code>就介绍到这里,感觉对设计重点还是分析的比较细致的,至于一些api方法,感觉没必要展开讨论,毕竟贴大段分析操作数组、链表的代码实在很low.以后这个系列坑只写精髓,不写废话.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2018-03-09, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:52:01</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/" title="java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList">forever-and-ever.cn/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/</a>
+            <span class="copy-path" data-clipboard-text="原文: forever-and-ever.cn/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">
+                    java集合启示录(二)之HashMap、LinkedHashMap
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/03/05/一致性hash算法探究/">
+                    一致性hash算法探究
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#概要"><span class="toc-number">2.1.</span> <span class="toc-text">概要</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ArrayList"><span class="toc-number">2.2.</span> <span class="toc-text">ArrayList</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#基本介绍"><span class="toc-number">2.2.1.</span> <span class="toc-text">基本介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码细节"><span class="toc-number">2.2.2.</span> <span class="toc-text">源码细节</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#扩容"><span class="toc-number">2.2.2.1.</span> <span class="toc-text">扩容</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fail-fast"><span class="toc-number">2.2.2.2.</span> <span class="toc-text">fail-fast</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#序列化"><span class="toc-number">2.2.2.3.</span> <span class="toc-text">序列化</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#LinkedList"><span class="toc-number">2.3.</span> <span class="toc-text">LinkedList</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#基本介绍-1"><span class="toc-number">2.3.1.</span> <span class="toc-text">基本介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码细节-1"><span class="toc-number">2.3.2.</span> <span class="toc-text">源码细节</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#定位元素位置"><span class="toc-number">2.3.2.1.</span> <span class="toc-text">定位元素位置</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#双端队列"><span class="toc-number">2.3.2.2.</span> <span class="toc-text">双端队列</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CopyOnWriteArrayList"><span class="toc-number">2.4.</span> <span class="toc-text">CopyOnWriteArrayList</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#基本介绍-2"><span class="toc-number">2.4.1.</span> <span class="toc-text">基本介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码细节-2"><span class="toc-number">2.4.2.</span> <span class="toc-text">源码细节</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#线程安全性"><span class="toc-number">2.4.2.1.</span> <span class="toc-text">线程安全性</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#对比Vector"><span class="toc-number">2.4.2.2.</span> <span class="toc-text">对比Vector</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.5.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/" title="上一篇: java集合启示录(二)之HashMap、LinkedHashMap">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/03/05/一致性hash算法探究/" title="下一篇: 一致性hash算法探究">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/20/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/02/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/24/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/17/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/02/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/01/16/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/30/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/14/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/06/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/03/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/15/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/11/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/29/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/27/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/07/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/03/13/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

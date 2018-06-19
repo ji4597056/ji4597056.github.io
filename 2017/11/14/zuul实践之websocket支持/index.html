@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;SpringCloud的zuul组件是解决java网关模块的大杀器,但是它依然是io阻塞模型,zuul2.0正在开源中,其io非阻塞特性以及对http2.0的支持和websocket的支持都是令人眼前一亮的闪光点.但是我们项目中现在依然使用zuul,目前该组件并未对websocket支持,目前我们项目中就需要网关加入websocket支持. &amp;emsp;&amp;emsp">
+<meta name="keywords" content="java,springcloud,websocket">
+<meta property="og:type" content="article">
+<meta property="og:title" content="zuul实践之websocket支持">
+<meta property="og:url" content="forever-and-ever.cn/2017/11/14/zuul实践之websocket支持/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;SpringCloud的zuul组件是解决java网关模块的大杀器,但是它依然是io阻塞模型,zuul2.0正在开源中,其io非阻塞特性以及对http2.0的支持和websocket的支持都是令人眼前一亮的闪光点.但是我们项目中现在依然使用zuul,目前该组件并未对websocket支持,目前我们项目中就需要网关加入websocket支持. &amp;emsp;&amp;emsp">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-06-18T20:55:01.930Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="zuul实践之websocket支持">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;SpringCloud的zuul组件是解决java网关模块的大杀器,但是它依然是io阻塞模型,zuul2.0正在开源中,其io非阻塞特性以及对http2.0的支持和websocket的支持都是令人眼前一亮的闪光点.但是我们项目中现在依然使用zuul,目前该组件并未对websocket支持,目前我们项目中就需要网关加入websocket支持. &amp;emsp;&amp;emsp">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>zuul实践之websocket支持 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-zuul实践之websocket支持" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2017/11/14/zuul实践之websocket支持/" class="article-date">
+      <time datetime="2017-11-14T12:00:00.000Z" itemprop="datePublished">2017-11-14</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      zuul实践之websocket支持
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/websocket/">websocket</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;SpringCloud的zuul组件是解决java网关模块的大杀器,但是它依然是io阻塞模型,zuul2.0正在开源中,其io非阻塞特性以及对http2.0的支持和websocket的支持都是令人眼前一亮的闪光点.但是我们项目中现在依然使用zuul,目前该组件并未对websocket支持,目前我们项目中就需要网关加入websocket支持.</p>
+<p>&emsp;&emsp;以前写过websocket的转发,当客户端与转发服务端建立连接时,同时让转发服务端维护一个client实例与目的服务端建立连接,通过这个client实例建立客户端与目的服务端消息转发的桥梁.编码难度其实不大,但是没必要重复造轮子,github上已经有大神提供了<a href="https://github.com/mthizo247/spring-cloud-netflix-zuul-websocket" target="_blank" rel="external">zuul-websocket</a>支持的框架,我们可以直接引入,通过配置修改达成我们的目的.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="何为websocket"><a href="#何为websocket" class="headerlink" title="何为websocket"></a>何为websocket</h3><p>&emsp;&emsp;websocket是HTML5下一种新的协议.它实现了浏览器与服务器全双工通信,能更好的节省服务器资源和带宽并达到实时通讯的目的.它与HTTP一样通过已建立的TCP连接来传输数据,但是它和HTTP最大不同是：</p>
+<ul>
+<li>websocket是一种双向通信协议.在建立连接后,websocket服务器端和客户端都能主动向对方发送或接收数据,就像socket一样.</li>
+<li>websocket需要像TCP一样,先建立连接,连接成功后才能相互通信.</li>
+</ul>
+<p>&emsp;&emsp;相对于传统HTTP每次请求-应答都需要客户端与服务端建立连接的模式,websocket是类似socket的TCP长连接通讯模式.一旦websocket连接建立后,后续数据都以帧序列的形式传输.在客户端断开websocket连接或server端中断连接前,不需要客户端和服务端重新发起连接请求.在海量并发及客户端与服务器交互负载流量大的情况下,极大的节省了网络带宽资源的消耗,有明显的性能优势,且客户端发送和接受消息是在同一个持久连接上发起,实时性优势明显.相比HTTP长连接,websocket有以下特点：</p>
+<ul>
+<li>是真正的全双工方式,建立连接后客户端与服务器端是完全平等的,可以互相主动请求,而HTTP长连接基于HTTP,是传统的客户端对服务器发起请求的模式.</li>
+<li>HTTP长连接中,每次数据交换除了真正的数据部分外,服务器和客户端还要大量交换HTTP header,效率很低.websocket协议通过第一个request建立了TCP连接之后,之后交换的数据都不需要发送HTTP header就能交换数据,这显然和原有的HTTP协议有区别所以它需要对服务器和客户端都进行升级才能实现(主流浏览器都已支持HTML5).此外还有multiplexing、不同的URL可以复用同一个WebSocket连接等功能.这些都是HTTP长连接不能做到的.</li>
+</ul>
+<h3 id="Srping-websocket"><a href="#Srping-websocket" class="headerlink" title="Srping websocket"></a>Srping websocket</h3><p>&emsp;&emsp;Spring框架对websocket提供了基于<code>STOMP</code>协议(可用于广播)和非<code>STOMP</code>协议(一般用于点对点通信)的实现.非<code>STOMP</code>协议的websocket较为简单,这里不做过多介绍,网关使用基于<code>STOMP</code>协议的websocket转发.</p>
+<p>&emsp;&emsp;基于<code>STOMP</code>协议的websocket属于发布-订阅模型.当客户端与服务端建立连接后,客户端向指定路由发送消息,服务端接收消息进行处理后,会把响应消息转发给另一路由,所有与服务端建立连接且订阅该路由的客户端都会接收到该消息.spring websocket配置如下:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Configuration</span></div><div class="line"><span class="meta">@EnableWebSocketMessageBroker</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WebSocketStompConfig</span> <span class="keyword">extends</span> <span class="title">AbstractWebSocketMessageBrokerConfigurer</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">configureMessageBroker</span><span class="params">(MessageBrokerRegistry config)</span> </span>&#123;</div><div class="line">        config.enableSimpleBroker(<span class="string">"/topic"</span>);  <span class="comment">//订阅路由前缀</span></div><div class="line">        config.setApplicationDestinationPrefixes(<span class="string">"/send"</span>);  <span class="comment">//发送路由前缀</span></div><div class="line"><span class="comment">//        config.setUserDestinationPrefix("/user");  //与@SendToUser配合使用,点对点通信订阅路由前缀</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">registerStompEndpoints</span><span class="params">(StompEndpointRegistry registry)</span> </span>&#123;</div><div class="line">        registry.addEndpoint(<span class="string">"/websocket"</span>).setAllowedOrigins(<span class="string">"*"</span>).withSockJS();  <span class="comment">//连接路由,开启SockJS支持</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Controller</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WebsocketMessageController</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@MessageMapping</span>(<span class="string">"/message"</span>)</div><div class="line"><span class="comment">//    @SendTo(value = "/topic/message") 若不配置改标签订阅路径为:订阅路由前缀(/topic)+"/message"</span></div><div class="line"><span class="comment">//    @SendToUser(value = "/message", broadcast = false)</span></div><div class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">sendMessage</span><span class="params">(String message)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        System.out.println(<span class="string">"receive message:"</span> + message);</div><div class="line">        <span class="keyword">return</span> message;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WebsocketStompClient</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">static</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyStompSessionHandler</span></span></div><div class="line"><span class="class">        <span class="keyword">extends</span> <span class="title">StompSessionHandlerAdapter</span> </span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">private</span> String userId;</div><div class="line"></div><div class="line">        <span class="keyword">private</span> String wsSendUri;</div><div class="line"></div><div class="line">        <span class="keyword">private</span> String wsSubscribeUri;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="title">MyStompSessionHandler</span><span class="params">(String userId, String wsSendUri, String wsSubscribeUri)</span> </span>&#123;</div><div class="line">            <span class="keyword">this</span>.userId = userId;</div><div class="line">            <span class="keyword">this</span>.wsSendUri = wsSendUri;</div><div class="line">            <span class="keyword">this</span>.wsSubscribeUri = wsSubscribeUri;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">showHeaders</span><span class="params">(StompHeaders headers)</span> </span>&#123;</div><div class="line">            <span class="keyword">for</span> (Map.Entry&lt;String, List&lt;String&gt;&gt; e : headers.entrySet()) &#123;</div><div class="line">                System.err.print(<span class="string">"  "</span> + e.getKey() + <span class="string">": "</span>);</div><div class="line">                <span class="keyword">boolean</span> first = <span class="keyword">true</span>;</div><div class="line">                <span class="keyword">for</span> (String v : e.getValue()) &#123;</div><div class="line">                    <span class="keyword">if</span> (!first) &#123;</div><div class="line">                        System.err.print(<span class="string">", "</span>);</div><div class="line">                    &#125;</div><div class="line">                    System.err.print(v);</div><div class="line">                    first = <span class="keyword">false</span>;</div><div class="line">                &#125;</div><div class="line">                System.err.println();</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">sendJsonMessage</span><span class="params">(StompSession session)</span> </span>&#123;</div><div class="line">            String msg = String.format(<span class="string">"hello from %s"</span>, userId);</div><div class="line">            session.send(wsSendUri, msg);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">subscribeTopic</span><span class="params">(String topic, StompSession session)</span> </span>&#123;</div><div class="line">            session.subscribe(topic, <span class="keyword">new</span> StompFrameHandler() &#123;</div><div class="line"></div><div class="line">                <span class="meta">@Override</span></div><div class="line">                <span class="function"><span class="keyword">public</span> Type <span class="title">getPayloadType</span><span class="params">(StompHeaders headers)</span> </span>&#123;</div><div class="line">                    <span class="keyword">return</span> String.class;</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                <span class="meta">@Override</span></div><div class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleFrame</span><span class="params">(StompHeaders headers,</span></span></div><div class="line"><span class="function"><span class="params">                    Object payload)</span> </span>&#123;</div><div class="line">                    System.err.println(</div><div class="line">                        String.format(<span class="string">"%s receive message: %s"</span>, userId, payload.toString()));</div><div class="line">                &#125;</div><div class="line">            &#125;);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">afterConnected</span><span class="params">(StompSession session,</span></span></div><div class="line"><span class="function"><span class="params">            StompHeaders connectedHeaders)</span> </span>&#123;</div><div class="line">            System.err.println(<span class="string">"Connected! Headers:"</span>);</div><div class="line">            showHeaders(connectedHeaders);</div><div class="line"></div><div class="line">            subscribeTopic(wsSubscribeUri, session);</div><div class="line">            sendJsonMessage(session);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">startClient</span><span class="params">(String wsConnectUrl, String wsSendUri, String wsSubscribeUri,</span></span></div><div class="line"><span class="function"><span class="params">        <span class="keyword">long</span> sleepForSecond)</span></span></div><div class="line"><span class="function">        <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        WebSocketClient simpleWebSocketClient =</div><div class="line">            <span class="keyword">new</span> StandardWebSocketClient();</div><div class="line">        List&lt;Transport&gt; transports = <span class="keyword">new</span> ArrayList&lt;&gt;(<span class="number">1</span>);</div><div class="line">        transports.add(<span class="keyword">new</span> WebSocketTransport(simpleWebSocketClient));</div><div class="line"></div><div class="line">        SockJsClient sockJsClient = <span class="keyword">new</span> SockJsClient(transports);</div><div class="line">        WebSocketStompClient stompClient =</div><div class="line">            <span class="keyword">new</span> WebSocketStompClient(sockJsClient);</div><div class="line">        stompClient.setMessageConverter(<span class="keyword">new</span> StringMessageConverter());</div><div class="line"></div><div class="line">        String userId = <span class="string">"Mr.J---"</span> + <span class="keyword">new</span> Random().nextInt(<span class="number">1000</span>);</div><div class="line">        StompSessionHandler sessionHandler = <span class="keyword">new</span> MyStompSessionHandler(userId, wsSendUri,</div><div class="line">            wsSubscribeUri);</div><div class="line">        StompSession session = stompClient.connect(wsConnectUrl, sessionHandler)</div><div class="line">            .get();</div><div class="line">        Long i = <span class="number">0L</span>;</div><div class="line">        <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</div><div class="line">            TimeUnit.SECONDS.sleep(sleepForSecond);</div><div class="line">            String msg = String.format(<span class="string">"%s send %s !"</span>, userId, i++);</div><div class="line">            session.send(wsSendUri, msg);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">startClient</span><span class="params">(String wsConnectUrl, String wsSendUri, String wsSubscribeUri)</span></span></div><div class="line"><span class="function">        <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        startClient(wsConnectUrl, wsSendUri, wsSubscribeUri, <span class="number">1L</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Zuul-websocket"><a href="#Zuul-websocket" class="headerlink" title="Zuul websocket"></a>Zuul websocket</h3><p>&emsp;&emsp;zuul增加websocket支持,直接参照github上大神的框架<a href="https://github.com/mthizo247/spring-cloud-netflix-zuul-websocket" target="_blank" rel="external">spring-cloud-netflix-zuul-websocket</a>配置,这里不做过多介绍.该项目可通过maven直接引入依赖,经过测试,确实可以从eureka获取了服务地址列表建立连接,但是并不会采用轮询策略,每次建立websocket连接时都只会使用固定的服务地址.</p>
+<p>&emsp;&emsp;该框架不支持非<code>STOMP</code>协议的websocket,也不支持<code>@SendToUser</code>配置,所以想要实现非广播模式,而是点对点的websocket通信只能自己造轮子,或者服务端发送路由中加上<code>UUID</code>,<code>@MessageMapping(&quot;/message/{uuid}&quot;)</code>,客户端建立连接时需要生成自己唯一的<code>UUID</code>,并向该路径发送和订阅消息以保证点对点通信.(当然这种需要客户端的支持的方案并不好,我们项目太紧,没有时间造轮子,所以我只好选用这种退而求其次的方案啦).</p>
+<p>&emsp;&emsp;经测试,使用该框架时,在收到订阅路由的消息时,消息不能被正确的<code>MessageConverter</code>转换,会发生客户端无法收到订阅路由的消息的情况.(不知道是不是我代码的问题,但是断点调试时确实发现框架里有点问题).遇到这种情况,可以自己声明<code>MessageConverter</code>解决.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Bean</span></div><div class="line"><span class="function"><span class="keyword">public</span> WebSocketStompClient <span class="title">stompClient</span><span class="params">(ThreadPoolTaskScheduler taskScheduler)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> bufferSizeLimit = <span class="number">8388608</span>;</div><div class="line">    StandardWebSocketClient webSocketClient = <span class="keyword">new</span> StandardWebSocketClient();</div><div class="line">    ArrayList transports = <span class="keyword">new</span> ArrayList();</div><div class="line">    transports.add(<span class="keyword">new</span> WebSocketTransport(webSocketClient));</div><div class="line">    SockJsClient sockJsClient = <span class="keyword">new</span> SockJsClient(transports);</div><div class="line">    WebSocketStompClient client = <span class="keyword">new</span> WebSocketStompClient(sockJsClient);</div><div class="line">    client.setInboundMessageSizeLimit(bufferSizeLimit);</div><div class="line">    <span class="comment">// 自定义MessageConverter</span></div><div class="line">    client.setMessageConverter(messageConverter());</div><div class="line">    client.setTaskScheduler(taskScheduler);</div><div class="line">    client.setDefaultHeartbeat(<span class="keyword">new</span> <span class="keyword">long</span>[]&#123;<span class="number">0L</span>, <span class="number">0L</span>&#125;);</div><div class="line">    <span class="keyword">return</span> client;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment"> * 自定义MessageConverter</span></div><div class="line"><span class="comment"> *</span></div><div class="line"><span class="comment"> * <span class="doctag">@return</span> MessageConverter</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="function"><span class="keyword">private</span> MessageConverter <span class="title">messageConverter</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> MessageConverter() &#123;</div><div class="line"></div><div class="line">        <span class="keyword">private</span> MessageConverter messageConverter = <span class="keyword">new</span> StringMessageConverter();</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> Object <span class="title">fromMessage</span><span class="params">(Message&lt;?&gt; message, Class&lt;?&gt; aClass)</span> </span>&#123;</div><div class="line">            <span class="keyword">if</span> (aClass == Object.class) &#123;</div><div class="line">                aClass = String.class;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">return</span> messageConverter.fromMessage(message, aClass);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="keyword">public</span> Message&lt;?&gt; toMessage(Object o, MessageHeaders messageHeaders) &#123;</div><div class="line">            <span class="keyword">return</span> messageConverter.toMessage(o, messageHeaders);</div><div class="line">        &#125;</div><div class="line">    &#125;;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>&emsp;&emsp;一般网关都会做token的效验用来拦截请求,zuul的过滤器可以实现HTTP协议的请求拦截,但是websocket如何拦截这些非法连接请求呢?使用该框架确实没看到这方面的拦截支持,仔细看了下该框架的配置类,也确实不好直接扩展.只能万般无奈选用了下下策(用别人造好的轮子总是各种无奈啊),完整重写该配置类,禁用原来的配置类.这里只贴下websocket拦截相关的代码.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">registerStompEndpoints</span><span class="params">(StompEndpointRegistry registry)</span> </span>&#123;</div><div class="line">      <span class="keyword">for</span> (Map.Entry&lt;String, ZuulWebSocketProperties.WsBrokerage&gt; entry : zuulWebSocketProperties</div><div class="line">          .getBrokerages().entrySet()) &#123;</div><div class="line">          ZuulWebSocketProperties.WsBrokerage wsBrokerage = entry.getValue();</div><div class="line">          <span class="keyword">if</span> (wsBrokerage.isEnabled()) &#123;</div><div class="line">              registry.addEndpoint(wsBrokerage.getEndPoints())</div><div class="line">                  <span class="comment">// set HandShakeHandler</span></div><div class="line">                  .setHandshakeHandler(<span class="keyword">new</span> CustomHandshakeHandler())</div><div class="line">                  .setAllowedOrigins(<span class="string">"*"</span>).withSockJS();</div><div class="line">          &#125;</div><div class="line">      &#125;</div><div class="line">  &#125;</div><div class="line">  </div><div class="line">  <span class="comment">/**</span></div><div class="line"><span class="comment">   * 自定义HandshakeHandler,用于拦截请求(这里不是我故意继承那么多看似无关的接口,是必须要继承哦!!!)</span></div><div class="line"><span class="comment">   */</span></div><div class="line">  <span class="class"><span class="keyword">class</span> <span class="title">CustomHandshakeHandler</span> <span class="keyword">implements</span> <span class="title">HandshakeHandler</span>, <span class="title">ServletContextAware</span>, <span class="title">Lifecycle</span> </span>&#123;</div><div class="line"></div><div class="line">      <span class="keyword">private</span> DefaultHandshakeHandler defaultHandshakeHandler = <span class="keyword">new</span> DefaultHandshakeHandler();</div><div class="line"></div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">doHandshake</span><span class="params">(ServerHttpRequest request, ServerHttpResponse response,</span></span></div><div class="line"><span class="function"><span class="params">          WebSocketHandler wsHandler, Map&lt;String, Object&gt; attributes)</span></span></div><div class="line"><span class="function">          <span class="keyword">throws</span> HandshakeFailureException </span>&#123;</div><div class="line">          <span class="comment">//自己写拦截逻辑,如是非法连接请求直接return false;</span></div><div class="line">          <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">()</span> </span>&#123;</div><div class="line">          defaultHandshakeHandler.start();</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stop</span><span class="params">()</span> </span>&#123;</div><div class="line">          defaultHandshakeHandler.stop();</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isRunning</span><span class="params">()</span> </span>&#123;</div><div class="line">          <span class="keyword">return</span> defaultHandshakeHandler.isRunning();</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setServletContext</span><span class="params">(ServletContext servletContext)</span> </span>&#123;</div><div class="line">          defaultHandshakeHandler.setServletContext(servletContext);</div><div class="line">      &#125;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;这次实践给我最大的感受就是造轮子什么的还是自己造的用起来才比较舒服,别人造的轮子总感觉有些方面不能满足自己的需求.这也是告诉大家,在造轮子的时候要多考虑框架的可扩展性哦!</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2017-11-14, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:55:01</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2017/11/14/zuul实践之websocket支持/" title="zuul实践之websocket支持">forever-and-ever.cn/2017/11/14/zuul实践之websocket支持/</a>
+            <span class="copy-path" data-clipboard-text="原文: forever-and-ever.cn/2017/11/14/zuul实践之websocket支持/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2017/12/06/websocket转发小框架实践/">
+                    websocket转发小框架实践
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2017/11/03/Rabbitmq实践/">
+                    RabbitMq实践
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#何为websocket"><span class="toc-number">2.1.</span> <span class="toc-text">何为websocket</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Srping-websocket"><span class="toc-number">2.2.</span> <span class="toc-text">Srping websocket</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Zuul-websocket"><span class="toc-number">2.3.</span> <span class="toc-text">Zuul websocket</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.4.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"zuul实践之websocket支持　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2017/12/06/websocket转发小框架实践/" title="上一篇: websocket转发小框架实践">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2017/11/03/Rabbitmq实践/" title="下一篇: RabbitMq实践">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/20/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/02/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/24/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/17/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/02/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/01/16/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/30/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/14/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/06/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/03/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/15/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/11/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/29/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/27/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/07/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/03/13/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

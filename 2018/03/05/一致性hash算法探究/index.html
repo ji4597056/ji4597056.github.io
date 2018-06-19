@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;前年写过网关模块设计,涉及到针对有状态服务请求转发负载均衡方案时,提供了一种hash负载均衡方案:每个uri进行hash计算得到一个数值，这个数值除以整个节点数量取余数得到该uri对应节点在节点集合(list)的index.(取模)这个方法很简单,但是缺点也很明显:如果对节点集合进行增加/删除操作,节点数量就会随之改变,先前uri和节点之间的对应关系便会打乱.最近">
+<meta name="keywords" content="算法,分布式">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一致性hash算法探究">
+<meta property="og:url" content="forever-and-ever.cn/2018/03/05/一致性hash算法探究/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;前年写过网关模块设计,涉及到针对有状态服务请求转发负载均衡方案时,提供了一种hash负载均衡方案:每个uri进行hash计算得到一个数值，这个数值除以整个节点数量取余数得到该uri对应节点在节点集合(list)的index.(取模)这个方法很简单,但是缺点也很明显:如果对节点集合进行增加/删除操作,节点数量就会随之改变,先前uri和节点之间的对应关系便会打乱.最近">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%B8%80.png">
+<meta property="og:image" content="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%BA%8C.png">
+<meta property="og:image" content="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%B8%89.png">
+<meta property="og:updated_time" content="2018-06-18T20:52:24.765Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="一致性hash算法探究">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;前年写过网关模块设计,涉及到针对有状态服务请求转发负载均衡方案时,提供了一种hash负载均衡方案:每个uri进行hash计算得到一个数值，这个数值除以整个节点数量取余数得到该uri对应节点在节点集合(list)的index.(取模)这个方法很简单,但是缺点也很明显:如果对节点集合进行增加/删除操作,节点数量就会随之改变,先前uri和节点之间的对应关系便会打乱.最近">
+<meta name="twitter:image" content="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%B8%80.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>一致性hash算法探究 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-一致性hash算法探究" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/03/05/一致性hash算法探究/" class="article-date">
+      <time datetime="2018-03-05T12:00:00.000Z" itemprop="datePublished">2018-03-05</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      一致性hash算法探究
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式/">分布式</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/算法/">算法</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;前年写过网关模块设计,涉及到<strong>针对有状态服务</strong>请求转发负载均衡方案时,提供了一种<code>hash</code>负载均衡方案:<code>每个uri进行hash计算得到一个数值，这个数值除以整个节点数量取余数得到该uri对应节点在节点集合(list)的index.(取模)</code>这个方法很简单,但是缺点也很明显:<code>如果对节点集合进行增加/删除操作,节点数量就会随之改变,先前uri和节点之间的对应关系便会打乱</code>.最近了解到<code>一致性hash算法</code>就是专门解决这种问题,让我们来深入探究一下吧!</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="实际场景"><a href="#实际场景" class="headerlink" title="实际场景"></a>实际场景</h3><p>&emsp;&emsp;一切问题必须以实际应用场景作为出发点,首先这里提出两个在日常开发中可能会遇到的问题场景.</p>
+<ul>
+<li>假设有一种静态资源,例如视频、网页、大型log文件等,只有用户第一次请求时才加载到系统内存中.我们希望以后每次对相关资源的请求都送达到同一个节点.这样可以最大限度的利用整个集群的能力,这也是CDN的基本思路.</li>
+<li>一个有状态服务,持有大量有状态session,且session不断的被更新和查询.一般情况,分布式环境下这种session会存储在redis中,但是由于session被更新和查询的频率非常频繁,为了提高系统性能和网络开销,可以将系统内存作为一级缓存,redis作为二级缓存.当内存缓存命中失败时,才会去redis缓存中读取session并写入内存缓存.当对内存缓存更新session时,异步备份数据到redis缓存.为了提高内存缓存的命中率,则需要用户每次对session进行读取和更新操作请求到服务的同一节点.</li>
+</ul>
+<p>&emsp;&emsp;基于上述场景,网关发出的请求会负载到该服务的各个节点,随之而来的问题就是针对该用户的同一份数据可能被存在不同服务节点上造成数据冗余.要解决这个问题只需要保证针对相同<code>key</code>(例如用户请求ip,用户登录后token)的请求都发送到该服务相同的节点上.如果使用简单的hash算法,服务地址列表变更(添加或移除)时,<code>key</code>的哈希结果的变化会随之变化,所有的映射关系都可能发生变化.即不满足<code>单调性</code>.</p>
+<p>&emsp;&emsp;<code>单调性(Monotonicity)</code>是指如果已经有一些内容通过哈希分派到了相应的缓冲区中,又有新的缓冲区加入到系统中,那么哈希的结果应能够保证原有已分配的内容可以被映射到新的缓冲区中去,而不会被映射到旧的缓冲集合中的其他缓冲区.如果有缓存区从系统中移除,那么该缓冲区已分配的内容会被映射到缓冲区集合中的其他缓冲区,不会影响其他缓冲区下分配的内容.</p>
+<p>&emsp;&emsp;在分布式环境下,每个服务节点都有可能失效,并且新的节点很可能动态的增加进来,如何保证当系统的节点数目发生变化时仍然能够对外提供良好的服务,这是值得考虑的,尤其是在设计分布式缓存系统时,如果某台服务器失效,对于整个系统来说如果不采用合适的算法来保证一致性,那么缓存于系统中的所有数据都可能会失效.</p>
+<h3 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h3><p>&emsp;&emsp;为了解决上述场景,让我们一起来探究<code>一致性hash算法</code>吧!</p>
+<p>&emsp;&emsp;具体原理:<code>先构造一个长度为2^32的整数环(这个环被称为一致性Hash环),根据节点名称的Hash值(其分布为[0, 2^32-1])将服务器节点放置在这个Hash环上,然后根据数据的Key值计算得到其Hash值(其分布也为[0, 2^32-1]),接着在Hash环上顺时针查找距离这个Key值的Hash值最近的服务器节点,完成Key到服务器的映射查找.</code></p>
+<ul>
+<li><p>如图示,计算<code>node1</code>、<code>node2</code>、<code>node3</code>、<code>node4</code>四个节点的hash值(0~2^32-1)映射到环中(一般情况下对机器的hash计算是采用机器的IP或者机器唯一的别名作为输入值).将若干对象计算hash值(0~2^32-1)映射到同一个环中,每个对象对应的节点为其顺时针最近的一个hash值对应的节点.<br><img src="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%B8%80.png" alt="一致性hash算法图示一"></p>
+</li>
+<li><p>如图示,当添加<code>node5</code>,计算其hash值映射到环中,其中三个对象会受到影响,对应节点由<code>node4</code>变为<code>node5</code>,其余对象不受影响.<br><img src="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%BA%8C.png" alt="一致性hash算法图示二"></p>
+</li>
+</ul>
+<p>&emsp;&emsp;上述设计即可保证hash算法的<code>单调性</code>.但是依然存在问题,假设遇到极端情况:<br>&emsp;&emsp;<code>hash(node1)=1</code>,<code>hash(node2)=100</code>,<code>hash(node3)=1000</code>,<code>hash(node4)=10000</code>.<br>&emsp;&emsp;此时,对象对应的节点极有可能为<code>node1</code>,因为<code>node4</code>与<code>node1</code>hash值之间的区间范围明显大于其他节点之间的hash值范围.这个例子比较极端,旨在说明由于节点数量不多,会出现某几个两两节点之间的区间明显大于其他两两节点之间的区间,从而导致对象分布不均匀,即不满足<code>平衡性</code>.</p>
+<p>&emsp;&emsp;<code>平衡性(Balance)</code>是指哈希的结果能够尽可能均匀分布到所有的缓冲中去,这样可以使得所有的缓冲空间都得到利用.</p>
+<p>&emsp;&emsp;通过分析,发生上述不满足<code>平衡性</code>的主要原因为节点数量太少,而hash区间太大(2^32).为了满足<code>平衡性</code>,<code>一致性哈希算</code>法引入了虚拟节点机制,即对每一个服务节点计算多个哈希,每个计算结果位置都放置一个此服务节点,称为虚拟节点.具体做法可以在节点key(服务器ip或主机名)的后面增加编号来实现.例如图示,有2个节点(<code>nodeA</code>、<code>nodeB</code>),可以为每台服务器计算三个虚拟节点,于是可以分别计算<code>Node A#1</code>、<code>Node A#2</code>、<code>Node A#3</code>、<code>Node B#1</code>、<code>Node B#2</code>、<code>Node B#3</code>的hash值.<br><img src="http://okzr61x6y.bkt.clouddn.com/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%9B%BE%E7%A4%BA%E4%B8%89.png" alt="一致性hash算法图示三"></p>
+<p>&emsp;&emsp;不难分析出,当实际节点对应的虚拟节点数越多,<code>一致性hash算法</code>将会愈加满足<code>平衡性</code>.</p>
+<h3 id="算法实现"><a href="#算法实现" class="headerlink" title="算法实现"></a>算法实现</h3><ul>
+<li><strong>Hash算法的选择:</strong><br>计算hash值的算法有很多,比如<code>CRC32_HASH</code>、<code>FNV1_32_HASH</code>、<code>KETAMA_HASH</code>等,不管选择何种hash算法,需要保证对应同一个输入的值,要有相同的输出,并且尽可能保证hash算法速度较快.看过网上很多算法的选择,推荐<code>FNV1_32_HASH</code>,对于这些算法的性能比较我没做过调研,这里仅贴出<code>FNV1_32_HASH</code>的代码实现.</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Hash</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">int</span> <span class="title">getHash</span><span class="params">(String key)</span></span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FnvHash</span> <span class="keyword">implements</span> <span class="title">Hash</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getHash</span><span class="params">(String key)</span> </span>&#123;</div><div class="line">        <span class="keyword">final</span> <span class="keyword">int</span> p = <span class="number">16777619</span>;</div><div class="line">        <span class="keyword">int</span> hash = (<span class="keyword">int</span>) <span class="number">2166136261L</span>;</div><div class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; key.length(); i++) &#123;</div><div class="line">            hash = (hash ^ key.charAt(i)) * p;</div><div class="line">        &#125;</div><div class="line">        hash += hash &lt;&lt; <span class="number">13</span>;</div><div class="line">        hash ^= hash &gt;&gt; <span class="number">7</span>;</div><div class="line">        hash += hash &lt;&lt; <span class="number">3</span>;</div><div class="line">        hash ^= hash &gt;&gt; <span class="number">17</span>;</div><div class="line">        hash += hash &lt;&lt; <span class="number">5</span>;</div><div class="line">        <span class="comment">// hash &gt;= 0</span></div><div class="line">        <span class="keyword">if</span> (hash &lt; <span class="number">0</span>) &#123;</div><div class="line">            hash = Math.abs(hash);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> hash;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li><p><strong>数据结构选型:</strong><br>可能我们首先想到用<code>List</code>数据结构去存储虚拟服务节点,这里需要将节点集合排序,选择性能较好的快速排序,时间复杂度为<code>O(n*lgn)</code>,然后遍历该集合找出hash值大于路由结点的hash值的第一个虚拟服务节点,时间复杂度为<code>O(lgn)</code>,最后根据映射规则得到该虚拟服务节点对应的真实服务节点.<br>比起上述方案,使用二分查找法能够更加快速地查询到虚拟服务节点,时间复杂度为<code>O(lgn)</code>,所以我们可以选择<code>TreeMap</code>来存储虚拟服务节点.<code>TreeMap</code>基于二叉平衡树原理(红黑树)存储有序的数据,因此查询性能非常好,但与此同时,插入性能相对较差.但在这种场景下,查询的频率是远远高于插入频率的.因此,这里选择<code>TreeMap</code>作为数据存储结构比较合理.</p>
+</li>
+<li><p><strong>代码实现:</strong></p>
+</li>
+</ul>
+<p>&emsp;&emsp;源码见<a href="https://github.com/ji4597056/algorithm-application" target="_blank" rel="external">算法应用之一致性hash算法</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConsistentHashingWithVirtualNode</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * virtual server node suffix</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String VIRTUAL_SERVER_NODE_SUFFIX = <span class="string">"##"</span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * virtual server nodes,key:node hash/value:node name</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> SortedMap&lt;Integer, String&gt; VIRTUAL_SERVER_NODES = <span class="keyword">new</span> TreeMap&lt;&gt;();</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * real server nodes</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> List&lt;String&gt; REAL_SERVER_NODES = <span class="keyword">new</span> LinkedList&lt;&gt;();</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * hash function</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Hash HASH;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * virtual nodes numbers</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> virtualNodesNum;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ConsistentHashingWithVirtualNode</span><span class="params">(List&lt;String&gt; realNodes, <span class="keyword">int</span> virtualNodeNum, Hash hash)</span> </span>&#123;</div><div class="line">        REAL_SERVER_NODES.addAll(realNodes);</div><div class="line">        <span class="keyword">this</span>.virtualNodesNum = virtualNodeNum;</div><div class="line">        HASH = hash;</div><div class="line">        init();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ConsistentHashingWithVirtualNode</span><span class="params">(List&lt;String&gt; realNodes, <span class="keyword">int</span> virtualNodeNum)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>(realNodes, virtualNodeNum, <span class="keyword">new</span> FnvHash());</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * put virtual server nodes</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> </span>&#123;</div><div class="line">        REAL_SERVER_NODES.forEach(node -&gt; IntStream.range(<span class="number">0</span>, virtualNodesNum)</div><div class="line">            .forEach(index -&gt; VIRTUAL_SERVER_NODES</div><div class="line">                .put(HASH.getHash(getVirtualNodeKey(node, index)),</div><div class="line">                    getVirtualNodeKey(node, index))));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * get server from node</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> node node</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> real node</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getServer</span><span class="params">(String node)</span> </span>&#123;</div><div class="line">        <span class="keyword">int</span> hash = HASH.getHash(node);</div><div class="line">        SortedMap&lt;Integer, String&gt; subMap = VIRTUAL_SERVER_NODES.tailMap(hash);</div><div class="line">        String virtualNode;</div><div class="line">        <span class="keyword">if</span> (subMap.size() == <span class="number">0</span>) &#123;</div><div class="line">            virtualNode = VIRTUAL_SERVER_NODES.get(VIRTUAL_SERVER_NODES.firstKey());</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            virtualNode = subMap.get(subMap.firstKey());</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> virtualNode.substring(<span class="number">0</span>, virtualNode.indexOf(VIRTUAL_SERVER_NODE_SUFFIX));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * add server node</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> serverNode server node</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addServerNode</span><span class="params">(String serverNode)</span> </span>&#123;</div><div class="line">        REAL_SERVER_NODES.add(serverNode);</div><div class="line">        IntStream.range(<span class="number">0</span>, virtualNodesNum).forEach(index -&gt; VIRTUAL_SERVER_NODES</div><div class="line">            .put(HASH.getHash(getVirtualNodeKey(serverNode, index)),</div><div class="line">                getVirtualNodeKey(serverNode, index)));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * remove server node</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> serverNode server node</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">removeServerNode</span><span class="params">(String serverNode)</span> </span>&#123;</div><div class="line">        REAL_SERVER_NODES.remove(serverNode);</div><div class="line">        IntStream.range(<span class="number">0</span>, virtualNodesNum).forEach(index -&gt; VIRTUAL_SERVER_NODES</div><div class="line">            .remove(HASH.getHash(getVirtualNodeKey(serverNode, index))));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * get real server nodes</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> real server nodes</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">public</span> List&lt;String&gt; <span class="title">getRealServerNodes</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> Collections.unmodifiableList(REAL_SERVER_NODES);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * get virtual server nodes</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> virtual server nodes</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">public</span> Map&lt;Integer, String&gt; <span class="title">getVirtualServerNodes</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> Collections.unmodifiableMap(VIRTUAL_SERVER_NODES);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * get virtual node key</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> realNodeKey real node</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> index index</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> virtual node</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">private</span> String <span class="title">getVirtualNodeKey</span><span class="params">(String realNodeKey, <span class="keyword">int</span> index)</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> realNodeKey + VIRTUAL_SERVER_NODE_SUFFIX + index;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li><strong>代码测试:</strong><br>这里主要测试设置不同虚拟节点数对于真实服务节点选择的影响,可以看出和我们预期一样,随着虚拟节点数设置越高,真实服务节点的选择也越趋于平均,即满足<code>平衡性</code>.</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConsistentHashingWithVirtualNodeTest</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> List&lt;String&gt; realServerNodes = Lists</div><div class="line">        .newArrayList(<span class="string">"172.0.0.1"</span>, <span class="string">"172.0.0.2"</span>, <span class="string">"172.0.0.3"</span>, <span class="string">"172.0.0.4"</span>, <span class="string">"172.0.0.5"</span>);</div><div class="line"></div><div class="line">    <span class="keyword">private</span> Random random = <span class="keyword">new</span> Random();</div><div class="line"></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testGetServer</span><span class="params">()</span> </span>&#123;</div><div class="line">        printGetServer(<span class="number">1</span>, <span class="number">500000</span>);</div><div class="line">        printGetServer(<span class="number">10</span>, <span class="number">500000</span>);</div><div class="line">        printGetServer(<span class="number">50</span>, <span class="number">500000</span>);</div><div class="line">        printGetServer(<span class="number">100</span>, <span class="number">500000</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">printGetServer</span><span class="params">(<span class="keyword">int</span> virtualNodeNum, <span class="keyword">int</span> nodeNum)</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"=================================="</span>);</div><div class="line">        System.out.println(<span class="string">"virtual node num:"</span> + virtualNodeNum + <span class="string">",node num:"</span> + nodeNum);</div><div class="line">        ConsistentHashingWithVirtualNode consistentHashing = <span class="keyword">new</span> ConsistentHashingWithVirtualNode(</div><div class="line">            realServerNodes, virtualNodeNum);</div><div class="line">        Map&lt;String, Integer&gt; result = <span class="keyword">new</span> HashMap&lt;&gt;();</div><div class="line">        IntStream.range(<span class="number">0</span>, nodeNum).forEach(i -&gt; &#123;</div><div class="line">            String serverNode = consistentHashing.getServer(getRandomNode());</div><div class="line">            <span class="keyword">if</span> (result.get(serverNode) == <span class="keyword">null</span>) &#123;</div><div class="line">                result.put(serverNode, <span class="number">1</span>);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                result.put(serverNode, result.get(serverNode) + <span class="number">1</span>);</div><div class="line">            &#125;</div><div class="line">        &#125;);</div><div class="line">        result.forEach((key, count) -&gt; System.out.println(key + <span class="string">":"</span> + count));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> String <span class="title">getRandomNode</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">int</span> max = <span class="number">256</span>;</div><div class="line">        <span class="keyword">return</span> random.nextInt(max) + <span class="string">"."</span> + random.nextInt(max) + <span class="string">"."</span> + random.nextInt(max) + random</div><div class="line">            .nextInt(max);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line">==================================</div><div class="line">virtual node num:1,node num:500000</div><div class="line">172.0.0.1:47336</div><div class="line">172.0.0.4:94302</div><div class="line">172.0.0.5:53151</div><div class="line">172.0.0.2:91794</div><div class="line">172.0.0.3:213417</div><div class="line">==================================</div><div class="line">virtual node num:10,node num:500000</div><div class="line">172.0.0.1:84303</div><div class="line">172.0.0.4:106161</div><div class="line">172.0.0.5:142935</div><div class="line">172.0.0.2:81781</div><div class="line">172.0.0.3:84820</div><div class="line">==================================</div><div class="line">virtual node num:50,node num:500000</div><div class="line">172.0.0.1:102522</div><div class="line">172.0.0.4:101109</div><div class="line">172.0.0.5:87228</div><div class="line">172.0.0.2:121043</div><div class="line">172.0.0.3:88098</div><div class="line">==================================</div><div class="line">virtual node num:100,node num:500000</div><div class="line">172.0.0.1:96348</div><div class="line">172.0.0.4:96249</div><div class="line">172.0.0.5:93649</div><div class="line">172.0.0.2:114121</div><div class="line">172.0.0.3:99633</div></pre></td></tr></table></figure>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;<code>一致性hash算法</code>主要应用在大规模高可用性的分布式存储上,尤其是KV存储上面,比如memcaced,redis集群,一些负载均衡中间件如nginx也提供该功能模块的支持.最后需要强调的是,<code>一致性hash算法</code>主要是针对有状态的服务,若是无状态的服务,选择该算法没有太大意义,反而相对其他负载均衡算法性能可能更差.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2018-03-05, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:52:24</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/03/05/一致性hash算法探究/" title="一致性hash算法探究">forever-and-ever.cn/2018/03/05/一致性hash算法探究/</a>
+            <span class="copy-path" data-clipboard-text="原文: forever-and-ever.cn/2018/03/05/一致性hash算法探究/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">
+                    java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/02/02/建立递归思想/">
+                    建立递归思想
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#实际场景"><span class="toc-number">2.1.</span> <span class="toc-text">实际场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#原理分析"><span class="toc-number">2.2.</span> <span class="toc-text">原理分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#算法实现"><span class="toc-number">2.3.</span> <span class="toc-text">算法实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.4.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"一致性hash算法探究　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/" title="上一篇: java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/02/02/建立递归思想/" title="下一篇: 建立递归思想">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/20/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/02/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/24/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/17/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/02/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/01/16/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/30/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/14/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/06/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/03/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/15/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/11/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/29/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/27/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/07/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/03/13/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;java8已经用很久了,CompletableFuture使用过一段时间,但是一直理解的不够深入,最近项目中由于需要对远程调用进行异步处理,所以选择使用CompletableFuture,在使用过程中发现一些问题,虽然java8 in action翻了几遍,依然没有解决心中的疑惑,于是决定深入研究一下CompletableFuture的用法.">
+<meta name="keywords" content="java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CompletableFuture实践">
+<meta property="og:url" content="forever-and-ever.cn/2017/12/12/CompletableFuture实践/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;java8已经用很久了,CompletableFuture使用过一段时间,但是一直理解的不够深入,最近项目中由于需要对远程调用进行异步处理,所以选择使用CompletableFuture,在使用过程中发现一些问题,虽然java8 in action翻了几遍,依然没有解决心中的疑惑,于是决定深入研究一下CompletableFuture的用法.">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://okzr61x6y.bkt.clouddn.com/CompletableFuture-%E4%B8%9A%E5%8A%A11.png">
+<meta property="og:updated_time" content="2018-06-18T20:54:21.849Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="CompletableFuture实践">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;java8已经用很久了,CompletableFuture使用过一段时间,但是一直理解的不够深入,最近项目中由于需要对远程调用进行异步处理,所以选择使用CompletableFuture,在使用过程中发现一些问题,虽然java8 in action翻了几遍,依然没有解决心中的疑惑,于是决定深入研究一下CompletableFuture的用法.">
+<meta name="twitter:image" content="http://okzr61x6y.bkt.clouddn.com/CompletableFuture-%E4%B8%9A%E5%8A%A11.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>CompletableFuture实践 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-CompletableFuture实践" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2017/12/12/CompletableFuture实践/" class="article-date">
+      <time datetime="2017-12-12T12:00:00.000Z" itemprop="datePublished">2017-12-12</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      CompletableFuture实践
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;java8已经用很久了,<code>CompletableFuture</code>使用过一段时间,但是一直理解的不够深入,最近项目中由于需要对远程调用进行异步处理,所以选择使用<code>CompletableFuture</code>,在使用过程中发现一些问题,虽然<code>java8 in action</code>翻了几遍,依然没有解决心中的疑惑,于是决定深入研究一下<code>CompletableFuture</code>的用法.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="说明"><a href="#说明" class="headerlink" title="说明"></a>说明</h3><p>&emsp;&emsp;<code>CompletableFuture</code>继承了<code>Future</code>和<code>CompletionStage</code>接口,<code>Future</code>不多介绍,不太理解<code>Future</code>设计原理的朋友可以看下<a href="https://github.com/iluwatar/java-design-patterns/tree/master/async-method-invocation" target="_blank" rel="external">async-method-invocation</a>.<code>CompletionStage</code>接口下定义了我们常用的<code>CompletableFuture</code>方法,这篇文章主要针对几个容易混淆的方法以及结合实际场景介绍<code>CompletableFuture</code>的常用使用方式.</p>
+<h3 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h3><p>&emsp;&emsp;场景介绍:初始化文本(<code>init</code>:sleep 1s)、获取文本的第一个单词(<code>getFirst</code>:sleep 1s)、获取文本的最后一个单词(<code>getLast</code>:sleep 2s)、拼接单词(<code>concat</code>)、拼接单词(<code>concatForSeconds</code>:sleep 1s).</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> String text;	<span class="comment">//文本</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">long</span> start;	<span class="comment">//起始时间</span></div><div class="line"></div><div class="line"><span class="meta">@Before</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">before</span><span class="params">()</span> </span>&#123;</div><div class="line">    text = <span class="string">"A B C D F"</span>;</div><div class="line">    start = System.currentTimeMillis();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@After</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">after</span><span class="params">()</span> </span>&#123;</div><div class="line">    System.out.println(<span class="string">"cost time:"</span> + (System.currentTimeMillis() - start) + <span class="string">"(ms)"</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">init</span><span class="params">(String text)</span> </span>&#123;</div><div class="line">    System.out.println(<span class="string">"'init' method thread:"</span> + Thread.currentThread().getName());</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        TimeUnit.SECONDS.sleep(<span class="number">1L</span>);</div><div class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> text;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getFirst</span><span class="params">(String text)</span> </span>&#123;</div><div class="line">    System.out.println(<span class="string">"'getFirst' method thread:"</span> + Thread.currentThread().getName());</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        TimeUnit.SECONDS.sleep(<span class="number">1L</span>);</div><div class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> text.substring(<span class="number">0</span>, text.indexOf(<span class="string">" "</span>));</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getLast</span><span class="params">(String text)</span> </span>&#123;</div><div class="line">    System.out.println(<span class="string">"'getLast' method thread:"</span> + Thread.currentThread().getName());</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        TimeUnit.SECONDS.sleep(<span class="number">2L</span>);</div><div class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> text.substring(text.lastIndexOf(<span class="string">" "</span>) + <span class="number">1</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">concat</span><span class="params">(String first, String last)</span> </span>&#123;</div><div class="line">    System.out.println(<span class="string">"'concat' method thread:"</span> + Thread.currentThread().getName());</div><div class="line">    <span class="keyword">return</span> first + <span class="string">"/"</span> + last;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">concatForSeconds</span><span class="params">(String first, String last)</span> </span>&#123;</div><div class="line">    System.out.println(<span class="string">"'concatForSeconds' method thread:"</span> + Thread.currentThread().getName());</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        TimeUnit.SECONDS.sleep(<span class="number">1L</span>);</div><div class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> first + <span class="string">"/"</span> + last;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><strong>业务一:</strong>初始化文本(1s),获取文本的第一个单词(1s)和最后一个单词(2s)并进行拼接,打印.</p>
+<ul>
+<li><p>写法一: <code>thenApply</code>-&gt;<code>thenApply</code>-&gt;<code>thenCombine</code>-&gt;<code>thenAccept</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture&lt;String&gt; initFuture = CompletableFuture.supplyAsync(() -&gt; init(text));</div><div class="line">    CompletableFuture&lt;String&gt; firstFuture = initFuture.thenApply(<span class="keyword">this</span>::getFirst);</div><div class="line">    CompletableFuture&lt;String&gt; lastFuture = initFuture.thenApply(<span class="keyword">this</span>::getLast);</div><div class="line">    firstFuture.thenCombine(lastFuture, <span class="keyword">this</span>::concat).thenAccept(System.out::println).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'concat' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    A/F</span></div><div class="line"><span class="comment">    cost time:4130(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法二: <code>thenApplyAsync</code>-&gt;<code>thenApplyAsync</code>-&gt;<code>thenCombine</code>-&gt;<code>thenAccept</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture&lt;String&gt; initFuture = CompletableFuture.supplyAsync(() -&gt; init(text));</div><div class="line">    CompletableFuture&lt;String&gt; firstFuture = initFuture.thenApplyAsync(<span class="keyword">this</span>::getFirst);</div><div class="line">    CompletableFuture&lt;String&gt; lastFuture = initFuture.thenApplyAsync(<span class="keyword">this</span>::getLast);</div><div class="line">    firstFuture.thenCombine(lastFuture, <span class="keyword">this</span>::concat).thenAccept(System.out::println).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    'concat' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    A/F</span></div><div class="line"><span class="comment">    cost time:3155(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法三: <code>thenCompose</code>-&gt;<code>thenCompose</code>-&gt;<code>thenCombine</code>-&gt;<code>thenAccept</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture&lt;String&gt; initFuture = CompletableFuture.supplyAsync(() -&gt; init(text));</div><div class="line">    CompletableFuture&lt;String&gt; firstFuture = initFuture</div><div class="line">        .thenCompose(s -&gt; CompletableFuture.supplyAsync(() -&gt; <span class="keyword">this</span>.getFirst(s)));</div><div class="line">    CompletableFuture&lt;String&gt; lastFuture = initFuture</div><div class="line">        .thenCompose(s -&gt; CompletableFuture.supplyAsync(() -&gt; <span class="keyword">this</span>.getLast(s)));</div><div class="line">    firstFuture.thenCombine(lastFuture, <span class="keyword">this</span>::concat).thenAccept(System.out::println).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    'concat' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    A/F</span></div><div class="line"><span class="comment">    cost time:3238(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法四: <code>thenCompose</code>(内嵌<code>thenCombine</code>)-&gt;<code>thenAccept</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture.supplyAsync(() -&gt; init(text))</div><div class="line">        .thenCompose(s -&gt; CompletableFuture.supplyAsync(() -&gt; getFirst(s))</div><div class="line">            .thenCombine(CompletableFuture.supplyAsync(() -&gt; getLast(s)), <span class="keyword">this</span>::concat))</div><div class="line">        .thenAccept(System.out::println).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    'concat' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    A/F</span></div><div class="line"><span class="comment">    cost time:3155(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法五: <code>thenCompose</code>-&gt;<code>thenAccept</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture.supplyAsync(() -&gt; init(text))</div><div class="line">        .thenCompose(s -&gt; CompletableFuture.supplyAsync(() -&gt; concat(getFirst(s), getLast(s))))</div><div class="line">        .thenAccept(System.out::println).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'concat' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    A/F</span></div><div class="line"><span class="comment">    cost time:4190(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><strong>分析:</strong><br>&emsp;&emsp;<code>thenApply</code>为同步操作.<code>thenApplyAsync</code>和<code>thenCompose</code>为异步操作.不同的是<code>thenApply</code>、<code>thenApplyAsync</code>传入的<code>Function()</code>返回值为<code>T</code>,而<code>thenCompose</code>传入的<code>Function()</code>返回值是<code>CompletableFuture&lt;T&gt;</code>,两者的区别可以类比于<code>stream</code>中<code>map</code>和<code>flatMap</code>.<br>&emsp;&emsp;<code>thenApply</code>、<code>thenApplyAsync</code>、<code>thenCompose</code>三个方法都是对前一个<code>CompletableFuture</code>的结果作为入参进行后续操作.那么该如何区别使用这三种方法呢?<code>stackoverflow</code>上有大神解答:<br><img src="http://okzr61x6y.bkt.clouddn.com/CompletableFuture-%E4%B8%9A%E5%8A%A11.png" alt="thenApply和thenCompose区别"><br>&emsp;&emsp;如上所示,简而言之,同步操作使用<code>thenApply</code>,异步操作使用<code>thenCompose</code>.不过这样回答也太简单.从写法结果而言,<code>写法二</code>、<code>写法四</code>是最优的写法(<code>写法三</code>虽然时间性能上达到要求,但是写法较冗余,不推荐),似乎<code>thenApplyAsync</code>和<code>thenCompose</code>可互为替代,当对之前<code>CompletableFuture</code>的结果进行一个复杂的后序操作,推荐使用<code>thenCompose</code>.</p>
+<p><strong>业务二:</strong>初始化文本(1s),获取文本的第一个单词(1s)和最后一个单词(2s)并进行拼接(1s),获取文本的最后一个单词(1s)和第一个单词(2s)并进行拼接(1s),打印2种拼接结果.</p>
+<ul>
+<li><p>写法一: <code>thenApplyAsync</code>-&gt;<code>thenApplyAsync</code>-&gt;<code>thenCombineAsync</code>-&gt;<code>thenCombineAsync</code>-&gt;<code>thenCombine</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture&lt;String&gt; initFuture = CompletableFuture.supplyAsync(() -&gt; init(text));</div><div class="line">    CompletableFuture&lt;String&gt; firstFuture = initFuture.thenApplyAsync(<span class="keyword">this</span>::getFirst);</div><div class="line">    CompletableFuture&lt;String&gt; lastFuture = initFuture.thenApplyAsync(<span class="keyword">this</span>::getLast);</div><div class="line">    CompletableFuture&lt;String&gt; combineFuture1 = firstFuture</div><div class="line">        .thenCombineAsync(lastFuture, <span class="keyword">this</span>::concatForSeconds);</div><div class="line">    CompletableFuture&lt;String&gt; combineFuture2 = lastFuture</div><div class="line">        .thenCombineAsync(firstFuture, <span class="keyword">this</span>::concatForSeconds);</div><div class="line">    combineFuture1.thenCombine(combineFuture2, (s1, s2) -&gt; &#123;</div><div class="line">        System.out.println(<span class="string">"s1:"</span> + s1 + <span class="string">",s2:"</span> + s2);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    'concatForSeconds' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'concatForSeconds' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    s1:A/F,s2:F/A</span></div><div class="line"><span class="comment">    cost time:4137(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法二: <code>thenApplyAsync</code>-&gt;<code>thenApplyAsync</code>-&gt;<code>thenCombine</code>-&gt;<code>thenCombine</code>-&gt;<code>thenCombine</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    CompletableFuture&lt;String&gt; initFuture = CompletableFuture.supplyAsync(() -&gt; init(text));</div><div class="line">    CompletableFuture&lt;String&gt; firstFuture = initFuture.thenApplyAsync(<span class="keyword">this</span>::getFirst);</div><div class="line">    CompletableFuture&lt;String&gt; lastFuture = initFuture.thenApplyAsync(<span class="keyword">this</span>::getLast);</div><div class="line">    CompletableFuture&lt;String&gt; combineFuture1 = firstFuture</div><div class="line">        .thenCombine(lastFuture, <span class="keyword">this</span>::concatForSeconds);</div><div class="line">    CompletableFuture&lt;String&gt; combineFuture2 = lastFuture</div><div class="line">        .thenCombine(firstFuture, <span class="keyword">this</span>::concatForSeconds);</div><div class="line">    combineFuture1.thenCombine(combineFuture2, (s1, s2) -&gt; &#123;</div><div class="line">        System.out.println(<span class="string">"s1:"</span> + s1 + <span class="string">",s2:"</span> + s2);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    'init' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getLast' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'getFirst' method thread:ForkJoinPool.commonPool-worker-2</span></div><div class="line"><span class="comment">    'concatForSeconds' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    'concatForSeconds' method thread:ForkJoinPool.commonPool-worker-1</span></div><div class="line"><span class="comment">    s1:A/F,s2:F/A</span></div><div class="line"><span class="comment">    cost time:5154(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><strong>分析:</strong><br>&emsp;&emsp;上述两种写法的区别仅为使用<code>thenCombine</code>/<code>thenCombineAsync</code>将<code>firstFuture</code>和<code>lastFuture</code>合并.<code>CompletableFuture</code>提供的操作接口中有很多<code>then***</code>,<code>then***Async</code>,那么<code>Async</code>后缀到底应该在何时使用呢?<br>&emsp;&emsp;综合上述两种业务,其实当对<code>CompletableFuture</code>的结果只进行一次后续处理,用<code>then***</code>和<code>then***Async</code>在性能上是没有区别的,甚至<code>then***Async</code>由于异步的原因需要将数据在线程间复制,性能略有损失(可忽略).但是当<code>CompletableFuture</code>的结果进行多个后续处理(如在第一种业务中,对初始化的<code>text</code>需要<code>getLast(text)</code>和<code>getFirst(text)</code>两种操作),如果使用<code>then***</code>,则多个后续操作会同步执行完成(一个操作完成再执行下一个),而使用<code>then***Async</code>,则多个后序操作会异步同时执行.<br>&emsp;&emsp;分析到这里,应该能明白<code>thenApply</code>、<code>thenApplyAsync</code>、<code>thenCompose</code>的使用区别,可以根据对先前<code>CompletableFuture</code>的结果进行的后续处理是否应该同步(非阻塞操作)/异步(阻塞操作),从而选用合适的方法.</p>
+<p><strong>业务三:</strong>初始化10个文本,在每个文本中,获取第一个单词(1s)和获取最后一个单词(2s)并进行拼接,打印.</p>
+<p>&emsp;&emsp;当对<code>CompletableFuture</code>执行<code>runAsync()</code>和<code>supplyAsync()</code>方法时,可以传递线程池参数,之后所有的异步操作都会从线程池中选取空闲线程执行操作,若未传递线程池参数,会使用默认线程池<code>ForkJoinPool.commonPool()</code>,该线程池的线程数为<code>Runtime.
+getRuntime().availableProcessors()</code>的返回值.对于自定义线程池该如何配置线程数,可以参考<code>Java并发编程实战</code>中的公式:<code>Nthreads = Ncpu * Ucpu * (1 + W/C)</code>,其中<code>Ncpu</code>表示处理器的核数(<code>Runtime.getRuntime().availableProcessors()</code>),<code>Ucpu</code>是期望的cpu利用率(介于0和1之间),<code>W/C</code>是等待时间和计算时间的比率(内核态时间与用户态时间之比),例如:在4核的操作系统下,执行某操作99%的时间都在等待IO,所以估算出的W/C比率为100.这意味着如果期望的CPU利用率是100%,需要创建一个拥有400个线程的线程池,当然在实际操作中线程池的大小大于实际并发使用的线程数反而是一种浪费.</p>
+<ul>
+<li><p>辅助方法:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 获取文本列表(非阻塞)</span></div><div class="line"><span class="function"><span class="keyword">private</span> List&lt;String&gt; <span class="title">getTexts</span><span class="params">(<span class="keyword">int</span> size)</span> </span>&#123;</div><div class="line">       List&lt;String&gt; origin = Lists.newArrayList(<span class="string">"A"</span>, <span class="string">"B"</span>, <span class="string">"C"</span>, <span class="string">"D"</span>, <span class="string">"E"</span>, <span class="string">"F"</span>);</div><div class="line">       List&lt;String&gt; texts = Lists.newArrayList();</div><div class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; size; i++) &#123;</div><div class="line">           texts.add(origin.stream().collect(Collectors.joining(<span class="string">" "</span>)));</div><div class="line">           Collections.shuffle(texts);</div><div class="line">       &#125;</div><div class="line">       <span class="keyword">return</span> texts;</div><div class="line">   &#125;</div><div class="line"></div><div class="line"><span class="comment">// 线程池</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> Executor threadPool = Executors.newFixedThreadPool(<span class="number">20</span>);</div></pre></td></tr></table></figure>
+</li>
+<li><p>写法一:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    List&lt;String&gt; texts = getTexts(<span class="number">10</span>);</div><div class="line">    texts.stream().map(</div><div class="line">        text -&gt; CompletableFuture.supplyAsync(() -&gt; getFirst(text), threadPool)</div><div class="line">            .thenCombine(CompletableFuture.supplyAsync(() -&gt; getLast(text), threadPool),</div><div class="line">               <span class="keyword">this</span>::concat).thenAccept(System.out::println)).map(CompletableFuture::join)</div><div class="line">        .collect(Collectors.toList());</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    cost time:20213(ms)    </span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法二:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    List&lt;String&gt; texts = getTexts(<span class="number">10</span>);</div><div class="line">    CompletableFuture&lt;Void&gt;[] futures = texts.stream()</div><div class="line">        .map(text -&gt; CompletableFuture.supplyAsync(() -&gt; getFirst(text), threadPool)</div><div class="line">            .thenCombine(CompletableFuture.supplyAsync(() -&gt; getLast(text), threadPool),</div><div class="line">                <span class="keyword">this</span>::concat)</div><div class="line">            .thenAccept(System.out::println)).toArray(CompletableFuture[]::<span class="keyword">new</span>);</div><div class="line">    CompletableFuture.allOf(futures).exceptionally(throwable -&gt; &#123;</div><div class="line">        System.out.println(<span class="string">"throwable message:"</span> + throwable.getMessage());</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;).join();</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    cost time:2206(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+<li><p>写法三:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Test</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</div><div class="line">    List&lt;String&gt; texts = getTexts(<span class="number">10</span>);</div><div class="line">    List&lt;CompletableFuture&lt;String&gt;&gt; futures = texts.stream().map(</div><div class="line">        text -&gt; CompletableFuture.supplyAsync(() -&gt; getFirst(text), threadPool)</div><div class="line">            .thenCombine(CompletableFuture.supplyAsync(() -&gt; getLast(text), threadPool),</div><div class="line">                <span class="keyword">this</span>::concat)).collect(Collectors.toList());</div><div class="line">    futures.stream().map(CompletableFuture::join).collect(Collectors.toList())</div><div class="line">        .forEach(System.out::println);</div><div class="line">&#125;</div><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">    cost time:2221(ms)</span></div><div class="line"><span class="comment"> */</span></div></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><strong>分析:</strong>可以明显看出<code>写法一</code>同步执行,<code>写法二</code>和<code>写法三</code>为异步执行,原因在于<code>写法二</code>和<code>写法三</code>使用了两个不同的<code>stream</code>流水线,当<code>CompletableFuture::join</code>写在同一个<code>stream</code>中,则会同步地执行<code>CompletableFuture</code>操作,这是由于流操作之间的延迟特性,如果在单一流水线中处理流,发向<code>CompletableFuture</code>操作只能以同步、顺序执行的方式才会成功,即当第一个<code>CompletableFuture</code>操作执行<code>join</code>等待结果执行完后,才会开始执行第二个<code>CompletableFuture</code>操作.</p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;<code>CompletableFuture</code>的使用心得就暂时写到这里,虽然想深入源码进行研究,但是发现用到的很多底层方法都是使用native方法,这期间反复看了几遍<code>java8 in action</code>关于<code>CompletableFuture</code>的章节,虽然只是一本工具书,但是通俗易懂却又不失深度,值得细细多看几遍.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2017-12-12, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:54:21</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2017/12/12/CompletableFuture实践/" title="CompletableFuture实践">forever-and-ever.cn/2017/12/12/CompletableFuture实践/</a>
+            <span class="copy-path" data-clipboard-text="原文: forever-and-ever.cn/2017/12/12/CompletableFuture实践/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2017/12/14/SpringCloud实践之ribbon/">
+                    SpringCloud实践之ribbon
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2017/12/06/websocket转发小框架实践/">
+                    websocket转发小框架实践
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#说明"><span class="toc-number">2.1.</span> <span class="toc-text">说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#场景"><span class="toc-number">2.2.</span> <span class="toc-text">场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.3.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"CompletableFuture实践　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2017/12/14/SpringCloud实践之ribbon/" title="上一篇: SpringCloud实践之ribbon">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2017/12/06/websocket转发小框架实践/" title="下一篇: websocket转发小框架实践">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/20/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/02/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/24/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/17/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/02/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/01/16/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/30/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/14/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/06/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/03/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/15/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/11/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/29/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/27/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/07/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/03/13/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

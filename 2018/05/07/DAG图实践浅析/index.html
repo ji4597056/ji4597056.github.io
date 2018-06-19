@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;作为一名热爱算法的程序员,可惜在实际项目开发中很少遇到自己实现复杂数据结构的机会.有幸开发中遇到一次DAG图(有向无环图)的应用实践,很有必要记录一下. &amp;emsp;&amp;emsp;DAG图的应用场景其实挺多的,这里简单描述下我在项目中的应用场景.需求:实现应用编排发布的功能.应用之间存在依赖关系,比如应用B依赖应用A,应用C依赖应用A,应用D依赖应用B和应用C.此时">
+<meta name="keywords" content="java,数据结构,算法">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DAG图实践浅析">
+<meta property="og:url" content="forever-and-ever.cn/2018/05/07/DAG图实践浅析/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;作为一名热爱算法的程序员,可惜在实际项目开发中很少遇到自己实现复杂数据结构的机会.有幸开发中遇到一次DAG图(有向无环图)的应用实践,很有必要记录一下. &amp;emsp;&amp;emsp;DAG图的应用场景其实挺多的,这里简单描述下我在项目中的应用场景.需求:实现应用编排发布的功能.应用之间存在依赖关系,比如应用B依赖应用A,应用C依赖应用A,应用D依赖应用B和应用C.此时">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://okzr61x6y.bkt.clouddn.com/%E6%9C%89%E5%90%91%E6%A0%91%E3%80%81DAG%E5%9B%BE%E3%80%81%E6%9C%89%E5%90%91%E5%9B%BE.png">
+<meta property="og:updated_time" content="2018-06-18T20:49:36.245Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DAG图实践浅析">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;作为一名热爱算法的程序员,可惜在实际项目开发中很少遇到自己实现复杂数据结构的机会.有幸开发中遇到一次DAG图(有向无环图)的应用实践,很有必要记录一下. &amp;emsp;&amp;emsp;DAG图的应用场景其实挺多的,这里简单描述下我在项目中的应用场景.需求:实现应用编排发布的功能.应用之间存在依赖关系,比如应用B依赖应用A,应用C依赖应用A,应用D依赖应用B和应用C.此时">
+<meta name="twitter:image" content="http://okzr61x6y.bkt.clouddn.com/%E6%9C%89%E5%90%91%E6%A0%91%E3%80%81DAG%E5%9B%BE%E3%80%81%E6%9C%89%E5%90%91%E5%9B%BE.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>DAG图实践浅析 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-DAG图实践浅析" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/05/07/DAG图实践浅析/" class="article-date">
+      <time datetime="2018-05-07T12:00:00.000Z" itemprop="datePublished">2018-05-07</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      DAG图实践浅析
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/算法/">算法</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;作为一名热爱算法的程序员,可惜在实际项目开发中很少遇到自己实现复杂数据结构的机会.有幸开发中遇到一次DAG图(有向无环图)的应用实践,很有必要记录一下.</p>
+<p>&emsp;&emsp;DAG图的应用场景其实挺多的,这里简单描述下我在项目中的应用场景.需求:实现应用编排发布的功能.应用之间存在依赖关系,比如应用B依赖应用A,应用C依赖应用A,应用D依赖应用B和应用C.此时编排发布的顺序即为应用A-&gt;应用B(或C)-&gt;应用C(或B)-&gt;应用D.是不是觉得这种处理有依赖关系任务并且串行执行的场景特别适合使用DAG图呢.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h3><p>&emsp;&emsp;在图论中,如果一个有向图从任意顶点出发无法经过若干条边回到该点,则这个图是一个有向无环图(DAG图).</p>
+<p>&emsp;&emsp;因为有向图中一个点经过两种路线到达另一个点未必形成环,因此有向无环图未必能转化成树,但任何有向树均为有向无环图.</p>
+<p><img src="http://okzr61x6y.bkt.clouddn.com/%E6%9C%89%E5%90%91%E6%A0%91%E3%80%81DAG%E5%9B%BE%E3%80%81%E6%9C%89%E5%90%91%E5%9B%BE.png" alt="有向树、DAG图、有向图"></p>
+<p>&emsp;&emsp;在计算机科学领域,有向图的拓扑排序或拓扑排序是其顶点的线性排序,使得对于从顶点u到顶点v的每个有向边uv,u在排序中都在v之前.例如,图形的顶点可以表示要执行的任务,并且边缘可以表示一个任务必须在另一个任务之前执行的约束;在这个应用中,拓扑排序只是一个有效的任务顺序.如果且仅当图形没有定向循环,即如果它是有向无环图(DAG),则拓扑排序是可能的.任何DAG具有至少一个拓扑排序,并且已知这些算法用于在线性时间内构建任何DAG的拓扑排序.</p>
+<p>&emsp;&emsp;在图论中,由一个有向无环图的顶点组成的序列,当且仅当满足下列条件时,称为该图的一个拓扑排序.</p>
+<ul>
+<li>每个顶点出现且只出现一次.</li>
+<li>若A在序列中排在B的前面,则在图中不存在从B到A的路径.</li>
+</ul>
+<p>&emsp;&emsp;也可以定义为:拓扑排序是对有向无环图的顶点的一种排序,它使得如果存在一条从顶点A到顶点B的路径,那么在排序中B出现在A的后面.</p>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>&emsp;&emsp;先定义节点对象,主要字段为每个节点的唯一id,作为拓扑排序中的顶点唯一标识,这里引入了权重字段,权重越高的顶点在拓扑排序中更靠前.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GraphNode</span>&lt;<span class="title">T</span>&gt; </span>&#123;</div><div class="line"></div><div class="line">	<span class="comment">// 唯一id</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> id;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> T content;</div><div class="line">	</div><div class="line">	<span class="comment">// 权重</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> weight;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">GraphNode</span><span class="params">(<span class="keyword">int</span> id, T content, <span class="keyword">int</span> weight)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.id = id;</div><div class="line">        <span class="keyword">this</span>.content = content;</div><div class="line">        <span class="keyword">this</span>.weight = weight;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">GraphNode</span><span class="params">(<span class="keyword">int</span> id, T content)</span></span>&#123;</div><div class="line">        <span class="keyword">this</span>.id = id;</div><div class="line">        <span class="keyword">this</span>.content = content;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getId</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> id;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setId</span><span class="params">(<span class="keyword">int</span> id)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.id = id;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> T <span class="title">getContent</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> content;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setContent</span><span class="params">(T content)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.content = content;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getWeight</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> weight;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setWeight</span><span class="params">(<span class="keyword">int</span> weight)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.weight = weight;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;拓扑排序的过程：</p>
+<ul>
+<li>先将入度为0的顶点放在队列中(为了保证权重大的顶点具有较高的优先级，所以使用优先队列).</li>
+<li>当队列不空时,出队列一个顶点v存入结果集合,然后更新与顶点v邻接的顶点的入度(减一).只要有一个顶点的入度降为0,则将之入队列.</li>
+<li>一直执行上述步骤,直到队列为空.如果最后队列不为空,说明该图有环.</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DirectedGraph</span>&lt;<span class="title">T</span>&gt; </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> Map&lt;Integer, Vertex&gt; graph;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DirectedGraph</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.graph = <span class="keyword">new</span> HashMap&lt;&gt;();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 拓扑排序</span></div><div class="line">    <span class="function"><span class="keyword">public</span> List&lt;Vertex&gt; <span class="title">topoSort</span><span class="params">()</span> </span>&#123;</div><div class="line">        List&lt;Vertex&gt; result = <span class="keyword">new</span> ArrayList&lt;&gt;();</div><div class="line">        <span class="keyword">if</span> (traverse(result::add)) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Graph has circle!"</span>);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> result;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 判断是否有环</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">hasCircle</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> traverse(<span class="keyword">null</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 清空</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">clear</span><span class="params">()</span> </span>&#123;</div><div class="line">        graph.clear();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 遍历,返回是否有环,true=有环,false=无环</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">traverse</span><span class="params">(Consumer&lt;Vertex&gt; consumer)</span> </span>&#123;</div><div class="line">        <span class="keyword">int</span> count = <span class="number">0</span>;</div><div class="line">        Queue&lt;Vertex&gt; queue = <span class="keyword">new</span> PriorityQueue&lt;&gt;();</div><div class="line">        <span class="comment">// 扫描所有的顶点,将入度为0的顶点入队列</span></div><div class="line">        Collection&lt;Vertex&gt; vertexs = getGraphValues();</div><div class="line">        <span class="keyword">for</span> (Vertex vertex : vertexs) &#123;</div><div class="line">            <span class="keyword">if</span> (vertex.inDegree == <span class="number">0</span>) &#123;</div><div class="line">                queue.offer(vertex);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        Vertex v;</div><div class="line">        <span class="keyword">while</span> ((v = queue.poll()) != <span class="keyword">null</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (consumer != <span class="keyword">null</span>) &#123;</div><div class="line">                consumer.accept(v);</div><div class="line">            &#125;</div><div class="line">            count++;</div><div class="line">            <span class="keyword">for</span> (Edge e : v.adjEdges) &#123;</div><div class="line">                <span class="keyword">if</span> (--e.endVertex.inDegree == <span class="number">0</span>) &#123;</div><div class="line">                    queue.offer(e.endVertex);</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> count != graph.size();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 图中增加有向边</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(GraphNode&lt;T&gt; from, GraphNode&lt;T&gt; to)</span> </span>&#123;</div><div class="line">        <span class="keyword">assert</span> from != <span class="keyword">null</span>;</div><div class="line">        <span class="keyword">assert</span> to != <span class="keyword">null</span>;</div><div class="line">        Vertex tVertex;</div><div class="line">        Vertex fVertex;</div><div class="line">        <span class="comment">// update to-vertex</span></div><div class="line">        <span class="keyword">if</span> (!graph.containsKey(to.getId())) &#123;</div><div class="line">            tVertex = <span class="keyword">new</span> Vertex(to.getId(), to.getWeight(), to.getContent());</div><div class="line">            graph.put(tVertex.id, tVertex);</div><div class="line">        &#125;</div><div class="line">        tVertex = graph.get(to.getId());</div><div class="line">        tVertex.inDegree++;</div><div class="line"></div><div class="line">        <span class="comment">// update from-vertex</span></div><div class="line">        <span class="keyword">if</span> (!graph.containsKey(from.getId())) &#123;</div><div class="line">            fVertex = <span class="keyword">new</span> Vertex(from.getId(), from.getWeight(), from.getContent());</div><div class="line">            graph.put(fVertex.id, fVertex);</div><div class="line">        &#125;</div><div class="line">        fVertex = graph.get(from.getId());</div><div class="line">        addEdge(fVertex, tVertex);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 图中增加顶点</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(GraphNode&lt;T&gt; node)</span> </span>&#123;</div><div class="line">        <span class="keyword">assert</span> node != <span class="keyword">null</span>;</div><div class="line">        <span class="keyword">if</span> (!graph.containsKey(node.getId())) &#123;</div><div class="line">            graph.put(node.getId(), <span class="keyword">new</span> Vertex(node.getId(), node.getWeight(), node.getContent()));</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 顶点增加边</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">addEdge</span><span class="params">(Vertex start, Vertex end)</span> </span>&#123;</div><div class="line">        Edge edge = <span class="keyword">new</span> Edge(end);</div><div class="line">        List&lt;Edge&gt; adjEdges = start.adjEdges;</div><div class="line">        <span class="keyword">if</span> (adjEdges == <span class="keyword">null</span>) &#123;</div><div class="line">            adjEdges = <span class="keyword">new</span> ArrayList&lt;&gt;();</div><div class="line">        &#125;</div><div class="line">        adjEdges.add(edge);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 获取图的浅拷贝</span></div><div class="line">    <span class="function"><span class="keyword">private</span> List&lt;Vertex&gt; <span class="title">getGraphValues</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> graph.values().stream()</div><div class="line">            .collect(ArrayList::<span class="keyword">new</span>, (vertices, vertex) -&gt; &#123;</div><div class="line">                    <span class="keyword">try</span> &#123;</div><div class="line">                        vertices.add(vertex.clone());</div><div class="line">                    &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">                        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Copy graph values error!"</span>);</div><div class="line">                    &#125;</div><div class="line">                &#125;,</div><div class="line">                ArrayList::addAll);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 定点</span></div><div class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Vertex</span> <span class="keyword">implements</span> <span class="title">Cloneable</span>, <span class="title">Comparable</span>&lt;<span class="title">Vertex</span>&gt; </span>&#123;</div><div class="line"></div><div class="line">        <span class="comment">// 顶点标识</span></div><div class="line">        <span class="keyword">private</span> <span class="keyword">int</span> id;</div><div class="line"></div><div class="line">        <span class="comment">// 边</span></div><div class="line">        <span class="keyword">private</span> List&lt;Edge&gt; adjEdges;</div><div class="line"></div><div class="line">        <span class="comment">// 入度</span></div><div class="line">        <span class="keyword">private</span> <span class="keyword">int</span> inDegree;</div><div class="line"></div><div class="line">        <span class="comment">// 权重</span></div><div class="line">        <span class="keyword">private</span> <span class="keyword">int</span> weight;</div><div class="line"></div><div class="line">        <span class="comment">// 内容</span></div><div class="line">        <span class="keyword">private</span> T content;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="title">Vertex</span><span class="params">(<span class="keyword">int</span> id, T content)</span> </span>&#123;</div><div class="line">            <span class="keyword">this</span>.id = id;</div><div class="line">            <span class="keyword">this</span>.inDegree = <span class="number">0</span>;</div><div class="line">            <span class="keyword">this</span>.weight = <span class="number">0</span>;</div><div class="line">            <span class="keyword">this</span>.adjEdges = <span class="keyword">new</span> LinkedList&lt;&gt;();</div><div class="line">            <span class="keyword">this</span>.content = content;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="title">Vertex</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">int</span> weight, T content)</span> </span>&#123;</div><div class="line">            <span class="keyword">this</span>.id = id;</div><div class="line">            <span class="keyword">this</span>.inDegree = <span class="number">0</span>;</div><div class="line">            <span class="keyword">this</span>.weight = weight;</div><div class="line">            <span class="keyword">this</span>.adjEdges = <span class="keyword">new</span> LinkedList&lt;&gt;();</div><div class="line">            <span class="keyword">this</span>.content = content;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getId</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> id;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> List&lt;Edge&gt; <span class="title">getAdjEdges</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> adjEdges;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getInDegree</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> inDegree;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getWeight</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> weight;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> T <span class="title">getContent</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> content;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> Vertex <span class="title">clone</span><span class="params">()</span> <span class="keyword">throws</span> CloneNotSupportedException </span>&#123;</div><div class="line">            <span class="keyword">return</span> (Vertex) <span class="keyword">super</span>.clone();</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compareTo</span><span class="params">(Vertex o)</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> o.weight - <span class="keyword">this</span>.weight;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 边</span></div><div class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Edge</span> </span>&#123;</div><div class="line"></div><div class="line">        <span class="comment">// 指向定点</span></div><div class="line">        <span class="keyword">private</span> Vertex endVertex;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="title">Edge</span><span class="params">(Vertex endVertex)</span> </span>&#123;</div><div class="line">            <span class="keyword">this</span>.endVertex = endVertex;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">public</span> Vertex <span class="title">getEndVertex</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">return</span> endVertex;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;测试结果如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DirectedGraphTest</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> DirectedGraph&lt;String&gt; g1 = <span class="keyword">new</span> DirectedGraph&lt;&gt;();</div><div class="line">    <span class="keyword">private</span> DirectedGraph&lt;String&gt; g2 = <span class="keyword">new</span> DirectedGraph&lt;&gt;();</div><div class="line">    <span class="keyword">private</span> DirectedGraph&lt;String&gt; g3 = <span class="keyword">new</span> DirectedGraph&lt;&gt;();</div><div class="line"></div><div class="line">    <span class="meta">@Before</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">build</span><span class="params">()</span> </span>&#123;</div><div class="line">        buidG1();</div><div class="line">        buidG2();</div><div class="line">        buidG3();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// build g1(no weight)</span></div><div class="line">    <span class="comment">//   --&gt; b --&gt;</span></div><div class="line">    <span class="comment">// a           d  |  e  | f --&gt; g</span></div><div class="line">    <span class="comment">//   --&gt; c --&gt;</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">buidG1</span><span class="params">()</span> </span>&#123;</div><div class="line">        GraphNode&lt;String&gt; a = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">1</span>, <span class="string">"a"</span>);</div><div class="line">        GraphNode&lt;String&gt; b = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">2</span>, <span class="string">"b"</span>);</div><div class="line">        GraphNode&lt;String&gt; c = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">3</span>, <span class="string">"c"</span>);</div><div class="line">        GraphNode&lt;String&gt; d = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">4</span>, <span class="string">"d"</span>);</div><div class="line">        GraphNode&lt;String&gt; e = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">5</span>, <span class="string">"e"</span>);</div><div class="line">        GraphNode&lt;String&gt; f = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">6</span>, <span class="string">"f"</span>);</div><div class="line">        GraphNode&lt;String&gt; g = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">7</span>, <span class="string">"g"</span>);</div><div class="line">        g1.add(a, b);</div><div class="line">        g1.add(a, c);</div><div class="line">        g1.add(b, d);</div><div class="line">        g1.add(c, d);</div><div class="line">        g1.add(e);</div><div class="line">        g1.add(f, g);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// build g2(weight)</span></div><div class="line">    <span class="comment">//      --&gt; b(1) --&gt;</span></div><div class="line">    <span class="comment">// a(3)              d(1)  |  e(1)  | f(2) --&gt; g(3)</span></div><div class="line">    <span class="comment">//      --&gt; c(2) --&gt;</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">buidG2</span><span class="params">()</span> </span>&#123;</div><div class="line">        GraphNode&lt;String&gt; a = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">1</span>, <span class="string">"a"</span>, <span class="number">3</span>);</div><div class="line">        GraphNode&lt;String&gt; b = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">2</span>, <span class="string">"b"</span>, <span class="number">1</span>);</div><div class="line">        GraphNode&lt;String&gt; c = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">3</span>, <span class="string">"c"</span>, <span class="number">2</span>);</div><div class="line">        GraphNode&lt;String&gt; d = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">4</span>, <span class="string">"d"</span>, <span class="number">1</span>);</div><div class="line">        GraphNode&lt;String&gt; e = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">5</span>, <span class="string">"e"</span>, <span class="number">1</span>);</div><div class="line">        GraphNode&lt;String&gt; f = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">6</span>, <span class="string">"f"</span>, <span class="number">2</span>);</div><div class="line">        GraphNode&lt;String&gt; g = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">7</span>, <span class="string">"g"</span>, <span class="number">3</span>);</div><div class="line">        g2.add(a, b);</div><div class="line">        g2.add(a, c);</div><div class="line">        g2.add(b, d);</div><div class="line">        g2.add(c, d);</div><div class="line">        g2.add(e);</div><div class="line">        g2.add(f, g);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// build g3(has circle)</span></div><div class="line">    <span class="comment">//   --&gt; b --&gt;</span></div><div class="line">    <span class="comment">// a           d --&gt; a  |  e  | f --&gt; g</span></div><div class="line">    <span class="comment">//   --&gt; c --&gt;</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">buidG3</span><span class="params">()</span> </span>&#123;</div><div class="line">        GraphNode&lt;String&gt; a = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">1</span>, <span class="string">"a"</span>);</div><div class="line">        GraphNode&lt;String&gt; b = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">2</span>, <span class="string">"b"</span>);</div><div class="line">        GraphNode&lt;String&gt; c = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">3</span>, <span class="string">"c"</span>);</div><div class="line">        GraphNode&lt;String&gt; d = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">4</span>, <span class="string">"d"</span>);</div><div class="line">        GraphNode&lt;String&gt; e = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">5</span>, <span class="string">"e"</span>);</div><div class="line">        GraphNode&lt;String&gt; f = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">6</span>, <span class="string">"f"</span>);</div><div class="line">        GraphNode&lt;String&gt; g = <span class="keyword">new</span> GraphNode&lt;&gt;(<span class="number">7</span>, <span class="string">"g"</span>);</div><div class="line">        g3.add(a, b);</div><div class="line">        g3.add(a, c);</div><div class="line">        g3.add(b, d);</div><div class="line">        g3.add(c, d);</div><div class="line">        g3.add(d, a);</div><div class="line">        g3.add(e);</div><div class="line">        g3.add(f, g);</div><div class="line">    &#125;</div><div class="line">	</div><div class="line">	<span class="comment">// 测试结果：</span></div><div class="line">	<span class="comment">//	==========print g1=========</span></div><div class="line">	<span class="comment">//	a f c g b e d </span></div><div class="line">	<span class="comment">//	==========print g2=========</span></div><div class="line">	<span class="comment">//	a f g c b e d</span></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">topoSort</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"==========print g1========="</span>);</div><div class="line">        g1.topoSort().forEach(vertex -&gt; System.out.print(vertex.getContent() + <span class="string">" "</span>));</div><div class="line">        System.out.println();</div><div class="line">        System.out.println(<span class="string">"==========print g2========="</span>);</div><div class="line">        g2.topoSort().forEach(vertex -&gt; System.out.print(vertex.getContent() + <span class="string">" "</span>));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">hasCircle</span><span class="params">()</span> </span>&#123;</div><div class="line">        Assert.assertTrue(!g1.hasCircle());</div><div class="line">        Assert.assertTrue(!g2.hasCircle());</div><div class="line">        Assert.assertTrue(g3.hasCircle());</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;最近面试360大数据部门惜败而归,虽然没有相关工作经验,但确实是我非常感兴趣的方向.工作方向尝试转型失败,让我痛心疾首,也让我愈加重视算法和数据结构,哎,言止于此.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2018-05-07, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:49:36</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/05/07/DAG图实践浅析/" title="DAG图实践浅析">forever-and-ever.cn/2018/05/07/DAG图实践浅析/</a>
+            <span class="copy-path" data-clipboard-text="原文: forever-and-ever.cn/2018/05/07/DAG图实践浅析/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/05/20/Spring循环依赖解析/">
+                    Spring循环依赖解析
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/04/02/java并发之AQS框架解析/">
+                    java并发之AQS框架解析
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#概念"><span class="toc-number">2.1.</span> <span class="toc-text">概念</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#代码实现"><span class="toc-number">2.2.</span> <span class="toc-text">代码实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.3.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"DAG图实践浅析　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/05/20/Spring循环依赖解析/" title="上一篇: Spring循环依赖解析">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/04/02/java并发之AQS框架解析/" title="下一篇: java并发之AQS框架解析">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/06/14/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/20/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/07/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/02/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/24/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/17/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/12/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/09/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/05/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/02/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/01/16/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/30/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/14/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/12/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/06/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/14/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/03/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/15/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/11/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/29/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/27/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/07/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/03/13/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;最近项目中需要使用mybatis + druid集成多数据源,网上有很多mybatis多数据源的解决方案,但是总感觉不太灵活,于是自己实践了配置方案,虽然期间遇到很多问题,但总算基本实现功能,遗憾的是由于对spring ioc源码没有深入的了解,有些地方代码实现的很不优雅.源码请参考multi-datasource.">
+<meta name="keywords" content="java,springboot,mybatis,druid">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mybatis+druid多数据源实践">
+<meta property="og:url" content="http://forever-and-ever.cn/mybatis+druid多数据源实践/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;最近项目中需要使用mybatis + druid集成多数据源,网上有很多mybatis多数据源的解决方案,但是总感觉不太灵活,于是自己实践了配置方案,虽然期间遇到很多问题,但总算基本实现功能,遗憾的是由于对spring ioc源码没有深入的了解,有些地方代码实现的很不优雅.源码请参考multi-datasource.">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-06-18T20:52:58.618Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="mybatis+druid多数据源实践">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;最近项目中需要使用mybatis + druid集成多数据源,网上有很多mybatis多数据源的解决方案,但是总感觉不太灵活,于是自己实践了配置方案,虽然期间遇到很多问题,但总算基本实现功能,遗憾的是由于对spring ioc源码没有深入的了解,有些地方代码实现的很不优雅.源码请参考multi-datasource.">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>mybatis+druid多数据源实践 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-mybatis+druid多数据源实践" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/mybatis+druid多数据源实践/" class="article-date">
+      <time datetime="2018-01-16T12:00:00.000Z" itemprop="datePublished">2018-01-16</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      mybatis+druid多数据源实践
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/druid/">druid</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/springboot/">springboot</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;最近项目中需要使用<code>mybatis</code> + <code>druid</code>集成多数据源,网上有很多<code>mybatis</code>多数据源的解决方案,但是总感觉不太灵活,于是自己实践了配置方案,虽然期间遇到很多问题,但总算基本实现功能,遗憾的是由于对<code>spring ioc</code>源码没有深入的了解,有些地方代码实现的很不优雅.源码请参考<a href="https://github.com/ji4597056/multi-datasource" target="_blank" rel="external">multi-datasource</a>.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><ul>
+<li>加载<code>druid</code>配置和<code>datasource</code>配置,动态注册<code>datasource bean</code>.</li>
+<li>通过<code>spring aop</code>拦截<code>mybatis mapper</code>,根据注解设置对应数据源.</li>
+</ul>
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><h4 id="基本属性配置"><a href="#基本属性配置" class="headerlink" title="基本属性配置"></a>基本属性配置</h4><p><strong>druid:<code>druid</code>具体配置参考官网</strong><br><figure class="highlight yml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="attr">spring:</span></div><div class="line"><span class="attr">  datasource:</span></div><div class="line"><span class="attr">    type:</span> <span class="string">com.alibaba.druid.pool.DruidDataSource</span></div><div class="line"><span class="attr">    druid:</span></div><div class="line"><span class="attr">      initialSize:</span>  <span class="string">$&#123;DATASOURCE_INITIAL_SIZE:20&#125;</span></div><div class="line"><span class="attr">      minIdle:</span> <span class="string">$&#123;DATASOURCE_MIN_IDLE:20&#125;</span></div><div class="line"><span class="attr">      maxActive:</span> <span class="string">$&#123;DATASOURCE_MAX_ACTIVE:100&#125;</span></div><div class="line"><span class="attr">      maxWait:</span> <span class="string">$&#123;DATASOURCE_MAX_WAIT:2000&#125;</span></div><div class="line"><span class="attr">      timeBetweenEvictionRunsMillis:</span> <span class="number">60000</span></div><div class="line"><span class="attr">      removeAbandoned:</span> <span class="literal">true</span></div><div class="line"><span class="attr">      removeAbandonedTimeout:</span> <span class="number">180</span></div><div class="line"><span class="attr">      logAbandoned:</span> <span class="literal">true</span></div><div class="line"><span class="attr">      minEvictableIdleTimeMillis:</span> <span class="number">300000</span></div><div class="line"><span class="attr">      validationQuery:</span> <span class="string">SELECT</span> <span class="number">1</span> <span class="string">FROM</span> <span class="string">DUAL</span></div><div class="line"><span class="attr">      testWhileIdle:</span> <span class="literal">true</span></div><div class="line"><span class="attr">      testOnBorrow:</span> <span class="literal">false</span></div><div class="line"><span class="attr">      testOnReturn:</span> <span class="literal">false</span></div><div class="line"><span class="attr">      poolPreparedStatements:</span> <span class="literal">true</span></div><div class="line"><span class="attr">      maxPoolPreparedStatementPerConnectionSize:</span> <span class="number">30</span></div><div class="line"><span class="attr">      filters:</span> <span class="string">stat</span></div><div class="line"><span class="attr">      connectionProperties:</span> <span class="string">druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000</span></div></pre></td></tr></table></figure></p>
+<p><strong>multiple datasource:(1.testDb1 2.testDb2)</strong><br><figure class="highlight yml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="attr">spring:</span></div><div class="line"><span class="attr">  datasource:</span></div><div class="line"><span class="attr">    dataSources:</span></div><div class="line">      <span class="comment"># testDb1</span></div><div class="line"><span class="attr">      testDb1:</span></div><div class="line"><span class="attr">        ip:</span> <span class="string">localhost</span></div><div class="line"><span class="attr">        port:</span> <span class="number">3306</span></div><div class="line"><span class="attr">        database:</span> <span class="string">testDb1</span></div><div class="line"><span class="attr">        url:</span> <span class="attr">jdbc:mysql://$&#123;spring.datasource.dataSources.testDb1.ip&#125;:$&#123;spring.datasource.dataSources.testDb1.port&#125;/$&#123;spring.datasource.dataSources.testDb1.database&#125;?zeroDateTimeBehavior=convertToNull&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;autoReconnect=true&amp;allowMultiQueries=true&amp;useSSL=false</span></div><div class="line"><span class="attr">        username:</span> <span class="string">root</span></div><div class="line"><span class="attr">        password:</span> <span class="string">root</span></div><div class="line"><span class="attr">        driver-class-name:</span> <span class="string">com.mysql.jdbc.Driver</span></div><div class="line"><span class="attr">        name:</span> <span class="string">testDb1</span></div><div class="line">      <span class="comment"># testDb2</span></div><div class="line"><span class="attr">      testDb2:</span></div><div class="line"><span class="attr">        ip:</span> <span class="string">localhost</span></div><div class="line"><span class="attr">        port:</span> <span class="number">3306</span></div><div class="line"><span class="attr">        database:</span> <span class="string">testDb2</span></div><div class="line"><span class="attr">        url:</span> <span class="attr">jdbc:mysql://$&#123;spring.datasource.dataSources.testDb2.ip&#125;:$&#123;spring.datasource.dataSources.testDb2.port&#125;/$&#123;spring.datasource.dataSources.testDb2.database&#125;?zeroDateTimeBehavior=convertToNull&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;autoReconnect=true&amp;allowMultiQueries=true&amp;useSSL=false</span></div><div class="line"><span class="attr">        username:</span> <span class="string">root</span></div><div class="line"><span class="attr">        password:</span> <span class="string">root</span></div><div class="line"><span class="attr">        driver-class-name:</span> <span class="string">com.mysql.jdbc.Driver</span></div><div class="line"><span class="attr">        name:</span> <span class="string">testDb2</span></div></pre></td></tr></table></figure></p>
+<h4 id="druid相关代码"><a href="#druid相关代码" class="headerlink" title="druid相关代码"></a>druid相关代码</h4><p><strong>DefaultDruidProperties:用于解析<code>druid</code>相关属性配置</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Getter</span></div><div class="line"><span class="meta">@Setter</span></div><div class="line"><span class="meta">@Builder</span></div><div class="line"><span class="meta">@AllArgsConstructor</span></div><div class="line"><span class="meta">@NoArgsConstructor</span></div><div class="line"><span class="meta">@EqualsAndHashCode</span>(callSuper = <span class="keyword">false</span>)</div><div class="line"><span class="meta">@ToString</span></div><div class="line"><span class="meta">@ConfigurationProperties</span>(prefix = DefaultDruidProperties.DRUID_PREFIX)</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DefaultDruidProperties</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DRUID_PREFIX = <span class="string">"spring.datasource.druid"</span>;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> String name;</div><div class="line">    <span class="keyword">private</span> String driverClassName;</div><div class="line">    <span class="keyword">private</span> String url;</div><div class="line">    <span class="keyword">private</span> String username;</div><div class="line">    <span class="keyword">private</span> String password;</div><div class="line">    <span class="keyword">private</span> String initialSize;</div><div class="line">    <span class="keyword">private</span> String minIdle;</div><div class="line">    <span class="keyword">private</span> String maxActive;</div><div class="line">    <span class="keyword">private</span> String maxWait;</div><div class="line">    <span class="keyword">private</span> String timeBetweenEvictionRunsMillis;</div><div class="line">    <span class="keyword">private</span> String minEvictableIdleTimeMillis;</div><div class="line">    <span class="keyword">private</span> String validationQuery;</div><div class="line">    <span class="keyword">private</span> String testWhileIdle;</div><div class="line">    <span class="keyword">private</span> String testOnBorrow;</div><div class="line">    <span class="keyword">private</span> String testOnReturn;</div><div class="line">    <span class="keyword">private</span> String poolPreparedStatements;</div><div class="line">    <span class="keyword">private</span> String maxPoolPreparedStatementPerConnectionSize;</div><div class="line">    <span class="keyword">private</span> String filters;</div><div class="line">    <span class="keyword">private</span> String connectionProperties;</div><div class="line">    <span class="keyword">private</span> String removeAbandoned;</div><div class="line">    <span class="keyword">private</span> String removeAbandonedTimeout;</div><div class="line">    <span class="keyword">private</span> String logAbandoned;</div><div class="line"></div><div class="line">	<span class="comment">// 静态工厂方法</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> DefaultDruidProperties <span class="title">buildProperties</span><span class="params">(ConfigurableEnvironment environment)</span> </span>&#123;</div><div class="line">        DefaultDruidProperties properties = <span class="keyword">new</span> DefaultDruidProperties();</div><div class="line">        <span class="keyword">if</span> (environment != <span class="keyword">null</span>) &#123;</div><div class="line">            MutablePropertySources propertySources = environment.getPropertySources();</div><div class="line">            <span class="keyword">new</span> RelaxedDataBinder(properties, DefaultDruidProperties.DRUID_PREFIX)</div><div class="line">                .bind(<span class="keyword">new</span> PropertySourcesPropertyValues(propertySources));</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> properties;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>MultiDataSourceProperties:用于解析多数据源相关配置(并支持单数据源)</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Getter</span></div><div class="line"><span class="meta">@Setter</span></div><div class="line"><span class="meta">@Builder</span></div><div class="line"><span class="meta">@AllArgsConstructor</span></div><div class="line"><span class="meta">@NoArgsConstructor</span></div><div class="line"><span class="meta">@EqualsAndHashCode</span>(callSuper = <span class="keyword">false</span>)</div><div class="line"><span class="meta">@ToString</span></div><div class="line"><span class="meta">@ConfigurationProperties</span>(prefix = MultiDataSourceProperties.DATASOURCE_PREFIX)</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MultiDataSourceProperties</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DATASOURCE_PREFIX = <span class="string">"spring.datasource"</span>;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> Map&lt;String, BaseDataSource&gt; dataSources;</div><div class="line">    <span class="keyword">private</span> String driverClassName;</div><div class="line">    <span class="keyword">private</span> String url;</div><div class="line">    <span class="keyword">private</span> String username;</div><div class="line">    <span class="keyword">private</span> String password;</div><div class="line">    <span class="keyword">private</span> String name;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addDataSource</span><span class="params">(String name, BaseDataSource baseDataSource)</span> </span>&#123;</div><div class="line">        <span class="keyword">if</span> (dataSources == <span class="keyword">null</span>) &#123;</div><div class="line">            dataSources = <span class="keyword">new</span> HashMap&lt;&gt;();</div><div class="line">        &#125;</div><div class="line">        dataSources.put(name, baseDataSource);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">	<span class="comment">// 静态工厂方法</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> MultiDataSourceProperties <span class="title">buildProperties</span><span class="params">(ConfigurableEnvironment environment)</span> </span>&#123;</div><div class="line">        MultiDataSourceProperties properties = <span class="keyword">new</span> MultiDataSourceProperties();</div><div class="line">        <span class="keyword">if</span> (environment != <span class="keyword">null</span>) &#123;</div><div class="line">            MutablePropertySources propertySources = environment.getPropertySources();</div><div class="line">            <span class="keyword">new</span> RelaxedDataBinder(properties, MultiDataSourceProperties.DATASOURCE_PREFIX)</div><div class="line">                .bind(<span class="keyword">new</span> PropertySourcesPropertyValues(propertySources));</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> properties;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">	<span class="meta">@Getter</span></div><div class="line">	<span class="meta">@Setter</span></div><div class="line">	<span class="meta">@Builder</span></div><div class="line">	<span class="meta">@AllArgsConstructor</span></div><div class="line">	<span class="meta">@NoArgsConstructor</span></div><div class="line">	<span class="meta">@EqualsAndHashCode</span>(callSuper = <span class="keyword">false</span>)</div><div class="line">	<span class="meta">@ToString</span></div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseDataSource</span> </span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">private</span> String driverClassName;</div><div class="line">        <span class="keyword">private</span> String url;</div><div class="line">        <span class="keyword">private</span> String username;</div><div class="line">        <span class="keyword">private</span> String password;</div><div class="line">        <span class="keyword">private</span> String name;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>BaseDruidDataSourceFactory:<code>druid</code>工厂方法</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseDruidDataSourceFactory</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> DefaultDruidProperties properties;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> Map&lt;String, Object&gt; configProperties = <span class="keyword">new</span> HashMap&lt;&gt;();</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">BaseDruidDataSourceFactory</span><span class="params">(DefaultDruidProperties properties)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.properties = properties;</div><div class="line">        init();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> DefaultDruidProperties <span class="title">getProperties</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> properties;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setProperties</span><span class="params">(DefaultDruidProperties properties)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.properties = properties;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> </span>&#123;</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_NAME, properties.getName());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_DRIVERCLASSNAME, properties.getDriverClassName());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_URL, properties.getUrl());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_USERNAME, properties.getUsername());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_PASSWORD, properties.getPassword());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_INITIALSIZE, properties.getInitialSize());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_MINIDLE, properties.getMinIdle());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_MAXACTIVE, properties.getMaxActive());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_MAXWAIT, properties.getMaxWait());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_TIMEBETWEENEVICTIONRUNSMILLIS,</div><div class="line">            properties.getTimeBetweenEvictionRunsMillis());</div><div class="line">        configProperties.put(</div><div class="line">            DruidDataSourceFactory.PROP_MINEVICTABLEIDLETIMEMILLIS,</div><div class="line">            properties.getMinEvictableIdleTimeMillis());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_VALIDATIONQUERY, properties.getValidationQuery());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_TESTWHILEIDLE, properties.getTestWhileIdle());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_TESTONBORROW, properties.getTestOnBorrow());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_TESTONRETURN, properties.getTestOnReturn());</div><div class="line">        configProperties.put(</div><div class="line">            DruidDataSourceFactory.PROP_POOLPREPAREDSTATEMENTS,</div><div class="line">            properties.getPoolPreparedStatements());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_FILTERS, properties.getFilters());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_CONNECTIONPROPERTIES,</div><div class="line">            properties.getConnectionProperties());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_REMOVEABANDONED, properties.getRemoveAbandoned());</div><div class="line">        configProperties.put(DruidDataSourceFactory.PROP_REMOVEABANDONEDTIMEOUT,</div><div class="line">            properties.getRemoveAbandonedTimeout());</div><div class="line">        configProperties</div><div class="line">            .put(DruidDataSourceFactory.PROP_LOGABANDONED, properties.getLogAbandoned());</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> DataSource <span class="title">createDataSource</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            <span class="keyword">return</span> DruidDataSourceFactory.createDataSource(configProperties);</div><div class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> Exception(<span class="string">"create druid datasource error"</span>, e);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Map&lt;String, Object&gt; <span class="title">getConfigProperties</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> Collections.unmodifiableMap(configProperties);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refresh</span><span class="params">()</span> </span>&#123;</div><div class="line">        init();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>MultiDruidDataSourceRegistry:多数据源注册器,根据配置属性动态注册<code>datasource</code></strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MultiDruidDataSourceRegistry</span> <span class="keyword">implements</span> <span class="title">BeanDefinitionRegistryPostProcessor</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> ScopeMetadataResolver scopeMetadataResolver = <span class="keyword">new</span> AnnotationScopeMetadataResolver();</div><div class="line"></div><div class="line">    <span class="keyword">private</span> BeanNameGenerator beanNameGenerator = <span class="keyword">new</span> AnnotationBeanNameGenerator();</div><div class="line"></div><div class="line">    <span class="keyword">private</span> BaseDruidDataSourceFactory druidDataSourceFactory;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> MultiDataSourceProperties dataSourceProperties;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">MultiDruidDataSourceRegistry</span><span class="params">(</span></span></div><div class="line"><span class="function"><span class="params">        BaseDruidDataSourceFactory druidDataSourceFactory,</span></span></div><div class="line"><span class="function"><span class="params">        MultiDataSourceProperties dataSourceProperties)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.druidDataSourceFactory = druidDataSourceFactory;</div><div class="line">        <span class="keyword">this</span>.dataSourceProperties = dataSourceProperties;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span></span></div><div class="line"><span class="function">        <span class="keyword">throws</span> BeansException </span>&#123;</div><div class="line">        dataSourceProperties.getDataSources().forEach((name, baseDataSource) -&gt; &#123;</div><div class="line">            BeanDefinition definition = beanFactory.getBeanDefinition(getBeanName(name));</div><div class="line">            MutablePropertyValues propertyValues = definition.getPropertyValues();</div><div class="line">            <span class="comment">// inject druid property values</span></div><div class="line">            druidDataSourceFactory.getConfigProperties().forEach(propertyValues::addPropertyValue);</div><div class="line">            <span class="comment">// inject base datasource property values</span></div><div class="line">            removeBaseProperties(propertyValues);</div><div class="line">            resetBaseProperties(propertyValues, baseDataSource, name);</div><div class="line">        &#125;);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postProcessBeanDefinitionRegistry</span><span class="params">(BeanDefinitionRegistry registry)</span></span></div><div class="line"><span class="function">        <span class="keyword">throws</span> BeansException </span>&#123;</div><div class="line">        dataSourceProperties.getDataSources()</div><div class="line">            .forEach((name, baseDataSource) -&gt; registerBean(registry, getBeanName(name),</div><div class="line">                DruidDataSource.class));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">registerBean</span><span class="params">(BeanDefinitionRegistry registry, String name, Class&lt;?&gt; beanClass)</span> </span>&#123;</div><div class="line">        AnnotatedGenericBeanDefinition abd = <span class="keyword">new</span> AnnotatedGenericBeanDefinition(beanClass);</div><div class="line">        ScopeMetadata scopeMetadata = <span class="keyword">this</span>.scopeMetadataResolver.resolveScopeMetadata(abd);</div><div class="line">        abd.setScope(scopeMetadata.getScopeName());</div><div class="line">        String beanName = (name != <span class="keyword">null</span> ? name</div><div class="line">            : <span class="keyword">this</span>.beanNameGenerator.generateBeanName(abd, registry));</div><div class="line">        AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);</div><div class="line">        BeanDefinitionHolder definitionHolder = <span class="keyword">new</span> BeanDefinitionHolder(abd, beanName);</div><div class="line">        BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, registry);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">resetBaseProperties</span><span class="params">(MutablePropertyValues propertyValues,</span></span></div><div class="line"><span class="function"><span class="params">        BaseDataSource baseDataSource, String name)</span> </span>&#123;</div><div class="line">        propertyValues.addPropertyValue(DruidDataSourceFactory.PROP_NAME,</div><div class="line">            Optional.ofNullable(baseDataSource.getName()).orElse(name));</div><div class="line">        propertyValues.addPropertyValue(DruidDataSourceFactory.PROP_DRIVERCLASSNAME,</div><div class="line">            baseDataSource.getDriverClassName());</div><div class="line">        propertyValues.addPropertyValue(DruidDataSourceFactory.PROP_URL, baseDataSource.getUrl());</div><div class="line">        propertyValues</div><div class="line">            .addPropertyValue(DruidDataSourceFactory.PROP_USERNAME, baseDataSource.getUsername());</div><div class="line">        propertyValues</div><div class="line">            .addPropertyValue(DruidDataSourceFactory.PROP_PASSWORD, baseDataSource.getPassword());</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">removeBaseProperties</span><span class="params">(MutablePropertyValues propertyValues)</span> </span>&#123;</div><div class="line">        propertyValues.removePropertyValue(DruidDataSourceFactory.PROP_NAME);</div><div class="line">        propertyValues.removePropertyValue(DruidDataSourceFactory.PROP_DRIVERCLASSNAME);</div><div class="line">        propertyValues.removePropertyValue(DruidDataSourceFactory.PROP_URL);</div><div class="line">        propertyValues.removePropertyValue(DruidDataSourceFactory.PROP_USERNAME);</div><div class="line">        propertyValues.removePropertyValue(DruidDataSourceFactory.PROP_PASSWORD);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">private</span> String <span class="title">getBeanName</span><span class="params">(String name)</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> <span class="string">"DataSource"</span> + name.substring(<span class="number">0</span>, <span class="number">1</span>).toUpperCase() + name.substring(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>DruidConfig:<code>druid</code>配置类,声明<code>druid</code>需要的相关<code>bean</code>,其中多数据源由<code>MultiDruidDataSourceRegistry</code>动态注册</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Configuration</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DruidConfig</span> <span class="keyword">implements</span> <span class="title">EnvironmentAware</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Autowired</span></div><div class="line">    <span class="keyword">private</span> Environment environment;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="function"><span class="keyword">public</span> MultiDruidDataSourceRegistry <span class="title">registry</span><span class="params">(DataSourceProperties dataSourceProperties)</span> </span>&#123;</div><div class="line">        MultiDataSourceProperties multiDataSourceProperties = MultiDataSourceProperties</div><div class="line">            .buildProperties((ConfigurableEnvironment) environment);</div><div class="line">        <span class="comment">// single datasource</span></div><div class="line">        <span class="keyword">if</span> (StringUtils.hasText(multiDataSourceProperties.getUrl())) &#123;</div><div class="line">            String name = Optional.ofNullable(multiDataSourceProperties.getName())</div><div class="line">                .orElse(<span class="string">"defaultDb"</span>);</div><div class="line">            BaseDataSource baseDataSource = <span class="keyword">new</span> BaseDataSource();</div><div class="line">            baseDataSource.setName(name);</div><div class="line">            baseDataSource.setDriverClassName(multiDataSourceProperties.getDriverClassName());</div><div class="line">            baseDataSource.setUrl(multiDataSourceProperties.getUrl());</div><div class="line">            baseDataSource.setUsername(multiDataSourceProperties.getUsername());</div><div class="line">            baseDataSource.setPassword(multiDataSourceProperties.getPassword());</div><div class="line">            multiDataSourceProperties.addDataSource(name, baseDataSource);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> MultiDruidDataSourceRegistry(druidDataSourceFactory(),</div><div class="line">            multiDataSourceProperties);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="function"><span class="keyword">public</span> BaseDruidDataSourceFactory <span class="title">druidDataSourceFactory</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> BaseDruidDataSourceFactory(DefaultDruidProperties.buildProperties(</div><div class="line">            (ConfigurableEnvironment) environment));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="function"><span class="keyword">public</span> ServletRegistrationBean <span class="title">druidStatViewServlet</span><span class="params">()</span> </span>&#123;</div><div class="line">        ServletRegistrationBean servletRegistrationBean =</div><div class="line">            <span class="keyword">new</span> ServletRegistrationBean(<span class="keyword">new</span> StatViewServlet(), <span class="string">"/admin/druid/*"</span>);</div><div class="line">        servletRegistrationBean.addInitParameter(<span class="string">"resetEnable"</span>, <span class="string">"true"</span>);</div><div class="line">        <span class="keyword">return</span> servletRegistrationBean;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="function"><span class="keyword">public</span> FilterRegistrationBean <span class="title">druidStatFilter</span><span class="params">()</span> </span>&#123;</div><div class="line">        FilterRegistrationBean filterRegistrationBean = <span class="keyword">new</span> FilterRegistrationBean(</div><div class="line">            <span class="keyword">new</span> WebStatFilter());</div><div class="line">        filterRegistrationBean.addUrlPatterns(<span class="string">"/*"</span>);</div><div class="line">        filterRegistrationBean.addInitParameter(</div><div class="line">            <span class="string">"exclusions"</span>, <span class="string">"*.js,*.gif,*.jpg,*.png,*.css,*.ico,/admin/druid/*"</span>);</div><div class="line">        <span class="keyword">return</span> filterRegistrationBean;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setEnvironment</span><span class="params">(Environment environment)</span> </span>&#123;</div><div class="line">        <span class="keyword">this</span>.environment = environment;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>&emsp;&emsp;在配置<code>DruidConfig</code>时并没有通过<code>@EnableConfigurationProperties</code>引入<code>DefaultDruidProperties</code>和<code>MultiDataSourceProperties</code>,而是通过静态方法<code>buildProperties()</code>获取属性配置类,这是因为继承<code>BeanDefinitionRegistryPostProcessor</code>的<code>bean</code>优先级较高,此时<code>ConfigurationProperties</code>并没有被属性注入,所以这里用静态方法获取属性配置对象.</p>
+<h4 id="mybatis相关代码"><a href="#mybatis相关代码" class="headerlink" title="mybatis相关代码"></a>mybatis相关代码</h4><p><strong>DatabaseContextHolder:通过<code>ThreadLocal</code>选择动态数据源</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DatabaseContextHolder</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadLocal&lt;String&gt; CONTEXT_HOLDER = <span class="keyword">new</span> ThreadLocal&lt;&gt;();</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">setDbType</span><span class="params">(String dbType)</span> </span>&#123;</div><div class="line">        Assert.notNull(dbType, <span class="string">"database type requires not null!"</span>);</div><div class="line">        CONTEXT_HOLDER.set(dbType);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">getDbType</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> CONTEXT_HOLDER.get();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">clearDbType</span><span class="params">()</span> </span>&#123;</div><div class="line">        CONTEXT_HOLDER.remove();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>DynamicDataSource:动态数据源,通过从<code>ThreadLocal</code>获取key选择注册的数据源</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DynamicDataSource</span> <span class="keyword">extends</span> <span class="title">AbstractRoutingDataSource</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">protected</span> Object <span class="title">determineCurrentLookupKey</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> DatabaseContextHolder.getDbType();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>DataSourceType:在<code>Mapper</code>类上注解,用以区分数据源</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Target</span>(ElementType.TYPE)</div><div class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</div><div class="line"><span class="meta">@Documented</span></div><div class="line"><span class="meta">@Inherited</span></div><div class="line"><span class="keyword">public</span> <span class="meta">@interface</span> DataSourceType &#123;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * datasource type name</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> name</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function">String <span class="title">value</span><span class="params">()</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>DataSourceAspect:<code>spring aop</code>拦截切面</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Aspect</span></div><div class="line"><span class="meta">@Order</span>(-<span class="number">1</span>)</div><div class="line"><span class="meta">@Component</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataSourceAspect</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Pointcut</span>(<span class="string">"execution(* com.jxg.test.dao..*.*(..))"</span>)</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">jointPointExpression</span><span class="params">()</span> </span>&#123;</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Around</span>(<span class="string">"jointPointExpression()"</span>)</div><div class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">setDataSourceKey</span><span class="params">(ProceedingJoinPoint point)</span></span></div><div class="line"><span class="function">        <span class="keyword">throws</span> Throwable </span>&#123;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            Optional.ofNullable(</div><div class="line">                AnnotationUtils.findAnnotation(point.getTarget().getClass(), DataSourceType.class))</div><div class="line">                .ifPresent(</div><div class="line">                    dataSourceType -&gt; DatabaseContextHolder.setDbType(dataSourceType.value()));</div><div class="line">            <span class="keyword">return</span> point.proceed();</div><div class="line">        &#125; <span class="keyword">finally</span> &#123;</div><div class="line">            DatabaseContextHolder.clearDbType();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>MybatisConfig:<code>mybatis</code>配置类,由于需要用到<code>MultiDruidDataSourceRegistry</code>动态注册的数据源,需要在<code>DruidConfig</code>后加载</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Configuration</span></div><div class="line"><span class="meta">@AutoConfigureAfter</span>(&#123;DruidConfig.class&#125;)</div><div class="line"><span class="meta">@MapperScan</span>(basePackages = <span class="string">"com.jxg.test.dao"</span>, sqlSessionFactoryRef = <span class="string">"sqlSessionFactory"</span>)</div><div class="line"><span class="meta">@EnableTransactionManagement</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MybatisConfig</span> <span class="keyword">extends</span> <span class="title">MybatisAutoConfiguration</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Autowired</span></div><div class="line">    <span class="keyword">private</span> List&lt;DruidDataSource&gt; dataSources;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> SqlSessionFactory <span class="title">sqlSessionFactory</span><span class="params">(DataSource dataSource)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        SqlSessionFactoryBean sqlSessionFactoryBean = <span class="keyword">new</span> SqlSessionFactoryBean();</div><div class="line">        sqlSessionFactoryBean.setDataSource(dataSource);</div><div class="line">        ResourcePatternResolver resolver = <span class="keyword">new</span> PathMatchingResourcePatternResolver();</div><div class="line">        sqlSessionFactoryBean.setMapperLocations(</div><div class="line">            resolver.getResources(<span class="string">"classpath*:mybatis/mapper/**/*Mapper.xml"</span>));</div><div class="line">        sqlSessionFactoryBean.setTypeAliasesPackage(<span class="string">"com.jxg.test.entity.mybatis"</span>);</div><div class="line">        sqlSessionFactoryBean</div><div class="line">            .setConfigLocation(<span class="keyword">new</span> ClassPathResource(<span class="string">"mybatis/mybatis-config.xml"</span>));</div><div class="line">        <span class="keyword">return</span> sqlSessionFactoryBean.getObject();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="meta">@Primary</span></div><div class="line">    <span class="function"><span class="keyword">public</span> DynamicDataSource <span class="title">dynamicDataSource</span><span class="params">()</span> </span>&#123;</div><div class="line">        Map&lt;Object, Object&gt; targetDataSources = <span class="keyword">new</span> HashMap&lt;&gt;();</div><div class="line">        dataSources.forEach(source -&gt; targetDataSources.put(source.getName(), source));</div><div class="line">        DynamicDataSource dataSource = <span class="keyword">new</span> DynamicDataSource();</div><div class="line">        dataSource.setTargetDataSources(targetDataSources);</div><div class="line">        <span class="comment">// default datasource</span></div><div class="line">        dataSource.setDefaultTargetDataSource(dataSources.get(<span class="number">0</span>));</div><div class="line">        <span class="keyword">return</span> dataSource;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Bean</span></div><div class="line">    <span class="function"><span class="keyword">public</span> DataSourceTransactionManager <span class="title">transactionManager</span><span class="params">(DataSource dataSource)</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> DataSourceTransactionManager(dataSource);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h4 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h4><p><strong>自定义注解</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Target</span>(ElementType.TYPE)</div><div class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</div><div class="line"><span class="meta">@Documented</span></div><div class="line"><span class="meta">@DataSourceType</span>(<span class="string">"testDb1"</span>)</div><div class="line"><span class="keyword">public</span> <span class="meta">@interface</span> TestDb1 &#123;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@Target</span>(ElementType.TYPE)</div><div class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</div><div class="line"><span class="meta">@Documented</span></div><div class="line"><span class="meta">@DataSourceType</span>(<span class="string">"testDb2"</span>)</div><div class="line"><span class="keyword">public</span> <span class="meta">@interface</span> TestDb2 &#123;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>Mapper</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@TestDb</span>1</div><div class="line"><span class="meta">@Mapper</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">testDb1Mapper</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function">List&lt;TestDO&gt; <span class="title">findById</span><span class="params">(@Param(<span class="string">"id"</span>)</span> Long id)</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@TestDb</span>2</div><div class="line"><span class="meta">@Mapper</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">testDb2Mapper</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function">List&lt;TestDO&gt; <span class="title">findById</span><span class="params">(@Param(<span class="string">"id"</span>)</span> Long id)</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><strong>Application:需要去除<code>DataSourceAutoConfiguration</code>自动配置</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@EnableDiscoveryClient</span></div><div class="line"><span class="meta">@SpringBootApplication</span></div><div class="line"><span class="meta">@EnableAutoConfiguration</span>(exclude = DataSourceAutoConfiguration.class)</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Application</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">        SpringApplication.run(Application.class, args);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;这篇文章基本贴的就是代码,因为思路比较简单就没有做过多的解释.在写的过程中遇到的一些坑主要是由于对<code>spring</code>bean加载的过程不够了解以及对<code>spring</code>提供的一些极为好用的util类不熟悉.有时间会深入学习下<code>spring</code>.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2018-01-16, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:52:58</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/mybatis+druid多数据源实践/" title="mybatis+druid多数据源实践">http://forever-and-ever.cn/mybatis+druid多数据源实践/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://forever-and-ever.cn/mybatis+druid多数据源实践/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/建立递归思想/">
+                    建立递归思想
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/docker实践总结/">
+                    docker实践总结
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#思路"><span class="toc-number">2.1.</span> <span class="toc-text">思路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#配置"><span class="toc-number">2.2.</span> <span class="toc-text">配置</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#基本属性配置"><span class="toc-number">2.2.1.</span> <span class="toc-text">基本属性配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#druid相关代码"><span class="toc-number">2.2.2.</span> <span class="toc-text">druid相关代码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#mybatis相关代码"><span class="toc-number">2.2.3.</span> <span class="toc-text">mybatis相关代码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#使用"><span class="toc-number">2.2.4.</span> <span class="toc-text">使用</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.3.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"mybatis+druid多数据源实践　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/建立递归思想/" title="上一篇: 建立递归思想">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/docker实践总结/" title="下一篇: docker实践总结">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

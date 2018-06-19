@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;最近看java8函数性编程,看了下ThreadLocal类的源码,顿时豁然开朗,以前太笨了,也懒得看源码,反正只是知道这个类每个线程维护一个线程安全的变量,但是并未解决线程共享的问题.">
+<meta name="keywords" content="java,多线程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ThreadLocal浅析">
+<meta property="og:url" content="http://forever-and-ever.cn/ThreadLocal浅析/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;最近看java8函数性编程,看了下ThreadLocal类的源码,顿时豁然开朗,以前太笨了,也懒得看源码,反正只是知道这个类每个线程维护一个线程安全的变量,但是并未解决线程共享的问题.">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-06-18T20:57:00.206Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ThreadLocal浅析">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;最近看java8函数性编程,看了下ThreadLocal类的源码,顿时豁然开朗,以前太笨了,也懒得看源码,反正只是知道这个类每个线程维护一个线程安全的变量,但是并未解决线程共享的问题.">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>ThreadLocal浅析 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-ThreadLocal浅析" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/ThreadLocal浅析/" class="article-date">
+      <time datetime="2017-03-13T12:00:00.000Z" itemprop="datePublished">2017-03-13</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      ThreadLocal浅析
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/多线程/">多线程</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;最近看java8函数性编程,看了下ThreadLocal类的源码,顿时豁然开朗,以前太笨了,也懒得看源码,反正只是知道这个类每个线程维护一个线程安全的变量,但是并未解决线程共享的问题.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="理解"><a href="#理解" class="headerlink" title="理解"></a>理解</h3><p>&emsp;&emsp;先说说我没看源码,也没看其他技术类文章前对ThreadLocal类的理解吧,我知道这个类是线程本地变量,做不到多线程的变量共享,所以嘛,我猜想是ThreadLocal是以Map实现,key存的是Thread,value存的是值,当调用get()方法时,会先获取currentThread,然后根据该key获取value.</p>
+<p>&emsp;&emsp;看了源码之后,感觉自己还是单纯了啊.不废话,上代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment"> * Sets the current thread's copy of this thread-local variable</span></div><div class="line"><span class="comment"> * to the specified value.  Most subclasses will have no need to</span></div><div class="line"><span class="comment"> * override this method, relying solely on the &#123;<span class="doctag">@link</span> #initialValue&#125;</span></div><div class="line"><span class="comment"> * method to set the values of thread-locals.</span></div><div class="line"><span class="comment"> *</span></div><div class="line"><span class="comment"> * <span class="doctag">@param</span> value the value to be stored in the current thread's copy of</span></div><div class="line"><span class="comment"> *        this thread-local.</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(T value)</span> </span>&#123;</div><div class="line">    Thread t = Thread.currentThread();</div><div class="line">    ThreadLocalMap map = getMap(t);</div><div class="line">    <span class="keyword">if</span> (map != <span class="keyword">null</span>)</div><div class="line">        map.set(<span class="keyword">this</span>, value);</div><div class="line">    <span class="keyword">else</span></div><div class="line">        createMap(t, value);</div><div class="line">&#125;</div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment"> * Returns the value in the current thread's copy of this</span></div><div class="line"><span class="comment"> * thread-local variable.  If the variable has no value for the</span></div><div class="line"><span class="comment"> * current thread, it is first initialized to the value returned</span></div><div class="line"><span class="comment"> * by an invocation of the &#123;<span class="doctag">@link</span> #initialValue&#125; method.</span></div><div class="line"><span class="comment"> *</span></div><div class="line"><span class="comment"> * <span class="doctag">@return</span> the current thread's value of this thread-local</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="function"><span class="keyword">public</span> T <span class="title">get</span><span class="params">()</span> </span>&#123;</div><div class="line">    Thread t = Thread.currentThread();</div><div class="line">    ThreadLocalMap map = getMap(t);</div><div class="line">    <span class="keyword">if</span> (map != <span class="keyword">null</span>) &#123;</div><div class="line">        ThreadLocalMap.Entry e = map.getEntry(<span class="keyword">this</span>);</div><div class="line">        <span class="keyword">if</span> (e != <span class="keyword">null</span>) &#123;</div><div class="line">            <span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</div><div class="line">            T result = (T)e.value;</div><div class="line">            <span class="keyword">return</span> result;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> setInitialValue();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;可以清楚的看到存储信息确实是个map(ThreadLocalMap),key竟然是ThreadLocal本身,这确实出乎我的意料.在这个方法内部我们看到,首先通过getMap(Thread t)方法获取一个和当前线程相关的ThreadLocalMap,然后将变量的值设置到这个ThreadLocalMap对象中,当然如果获取到的ThreadLocalMap对象为空,就通过createMap方法创建.</p>
+<p>&emsp;&emsp;线程隔离的秘密,就在于ThreadLocalMap这个类.ThreadLocalMap是ThreadLocal类的一个静态内部类,它实现了键值对的设置和获取（对比Map对象来理解）,每个线程中都有一个独立的ThreadLocalMap副本,它所存储的值,只能被当前线程读取和修改.ThreadLocal类通过操作每一个线程特有的ThreadLocalMap副本,从而实现了变量访问在不同线程中的隔离.因为每个线程的变量都是自己特有的,完全不会有并发错误.还有一点就是,ThreadLocalMap存储的键值对中的键是this对象指向的ThreadLocal对象,而值就是你所设置的对象了.</p>
+<h3 id="ThreadLocalMap"><a href="#ThreadLocalMap" class="headerlink" title="ThreadLocalMap"></a>ThreadLocalMap</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment"> * The entries in this hash map extend WeakReference, using</span></div><div class="line"><span class="comment"> * its main ref field as the key (which is always a</span></div><div class="line"><span class="comment"> * ThreadLocal object).  Note that null keys (i.e. entry.get()</span></div><div class="line"><span class="comment"> * == null) mean that the key is no longer referenced, so the</span></div><div class="line"><span class="comment"> * entry can be expunged from table.  Such entries are referred to</span></div><div class="line"><span class="comment"> * as "stale entries" in the code that follows.</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Entry</span> <span class="keyword">extends</span> <span class="title">WeakReference</span>&lt;<span class="title">ThreadLocal</span>&lt;?&gt;&gt; </span>&#123;</div><div class="line">    <span class="comment">/** The value associated with this ThreadLocal. */</span></div><div class="line">    Object value;</div><div class="line"></div><div class="line">    Entry(ThreadLocal&lt;?&gt; k, Object v) &#123;</div><div class="line">        <span class="keyword">super</span>(k);</div><div class="line">        value = v;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&emsp;&emsp;可以看出ThreadLocalMap里的Entry竟然用的是弱引用,具体map实现比较复杂,我一时没看明白,也就不贴代码,这个以后专门出一篇文章说说map的实现,毕竟java8在这方面改进了许多.</p>
+<p>&emsp;&emsp;说说弱引用吧,为什么ThreadLocalMap的用弱引用的Entry来存储呢?WeakReference标志性的特点是：reference实例不会影响到被应用对象的GC回收行为(即只要对象被除WeakReference对象之外所有的对象解除引用后,该对象便可以被GC回收),只不过在被对象回收之后,reference实例想获得被应用的对象时程序会返回null.</p>
+<p>&emsp;&emsp;被废弃了的ThreadLocal所绑定对象的引用,会在以下4情况被清理.如果此时外部没有绑定对象的引用,则该绑定对象就能被回收了:</p>
+<ul>
+<li><p>1 Thread结束时.</p>
+</li>
+<li><p>2 当Thread的ThreadLocalMap的threshold超过最大值时.</p>
+</li>
+<li><p>3 向Thread的ThreadLocalMap中存放一个ThreadLocal,hash算法没有命中既有Entry,而需要新建一个Entry时.</p>
+</li>
+<li><p>4 手工通过ThreadLocal的remove()方法或set(null).</p>
+</li>
+</ul>
+<h3 id="内存泄漏"><a href="#内存泄漏" class="headerlink" title="内存泄漏"></a>内存泄漏</h3><p>&emsp;&emsp;如果我们粗暴的把ThreadLocal设置null,而不调用remove()方法或set(null),那么就可能造成ThreadLocal绑定的对象长期也能被回收，因而产出内存泄露。</p>
+<p>&emsp;&emsp;ThreadLocalMap使用ThreadLocal的弱引用作为key,如果一个ThreadLocal没有外部强引用来引用它,那么系统GC的时候,这个ThreadLocal势必会被回收,这样一来,ThreadLocalMap中就会出现key为null的Entry,就没有办法访问这些key为null的Entry的value,如果当前线程再迟迟不结束的话,这些key为null的Entry的value就会一直存在一条强引用链:Thread Ref -&gt; Thread -&gt; ThreaLocalMap -&gt; Entry -&gt; value永远无法回收,造成内存泄漏.</p>
+<p>&emsp;&emsp;下面我们分两种情况讨论:</p>
+<ul>
+<li>key 使用强引用:引用的ThreadLocal的对象被回收了,但是ThreadLocalMap还持有ThreadLocal的强引用,如果没有手动删除,ThreadLocal不会被回收,导致Entry内存泄漏.</li>
+<li>key 使用弱引用:引用的ThreadLocal的对象被回收了,由于ThreadLocalMap持有ThreadLocal的弱引用,即使没有手动删除,ThreadLocal也会被回收.value在下一次ThreadLocalMap调用set,get,remove的时候会被清除.</li>
+</ul>
+<p>比较两种情况,我们可以发现:由于ThreadLocalMap的生命周期跟Thread一样长,如果都没有手动删除对应key,都会导致内存泄漏,但是使用弱引用可以多一层保障:弱引用ThreadLocal不会内存泄漏,对应的value在下一次ThreadLocalMap调用set,get,remove的时候会被清除.<br>因此,ThreadLocal内存泄漏的根源是:由于ThreadLocalMap的生命周期跟Thread一样长,如果没有手动删除对应key就会导致内存泄漏,而不是因为弱引用.</p>
+<h3 id="最佳实践"><a href="#最佳实践" class="headerlink" title="最佳实践"></a>最佳实践</h3><p>综合上面的分析,我们可以理解ThreadLocal内存泄漏的前因后果,那么怎么避免内存泄漏呢?<br>每次使用完ThreadLocal,都调用它的remove()方法,清除数据.<br>在使用线程池的情况下,没有及时清理ThreadLocal,不仅是内存泄漏的问题,更严重的是可能导致业务逻辑出现问题.所以,使用ThreadLocal就跟加锁完要解锁一样,用完就清理.</p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;最近看了很多常用类的源码,发现都引入了函数性接口,ThreadLocal初始化变量也用到了:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadLocal&lt;Integer&gt; localInteger = ThreadLocal</div><div class="line">    .withInitial(() -&gt; <span class="keyword">new</span> Integer(<span class="number">0</span>));</div></pre></td></tr></table></figure></p>
+<p>&emsp;&emsp;这周主要任务就是熟练使用函数性编程代码风格&gt;_&lt;</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/ThreadLocal浅析/">ThreadLocal浅析</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2017-03-13, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:57:00</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/ThreadLocal浅析/" title="ThreadLocal浅析">http://forever-and-ever.cn/ThreadLocal浅析/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://forever-and-ever.cn/ThreadLocal浅析/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/Akka初探/">
+                    Akka初探
+                </a>
+            </div>
+        
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#理解"><span class="toc-number">2.1.</span> <span class="toc-text">理解</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ThreadLocalMap"><span class="toc-number">2.2.</span> <span class="toc-text">ThreadLocalMap</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#内存泄漏"><span class="toc-number">2.3.</span> <span class="toc-text">内存泄漏</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#最佳实践"><span class="toc-number">2.4.</span> <span class="toc-text">最佳实践</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.5.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"ThreadLocal浅析　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/Akka初探/" title="上一篇: Akka初探">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/" title="回到主页"><i class="fa fa-home"></i></a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

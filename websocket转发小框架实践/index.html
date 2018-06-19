@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="Silly Jeffrey" />
+
+
+
+<meta name="description" content="start&amp;emsp;&amp;emsp;之前写过介绍网上大神写的基于stomp协议的zuul-websocket组件,通过该组件支持网关websocket代理转发.但是我们在项目中的使用场景往往是非stomp协议的websocket转发,所以那个组件可能就无法直接使用啦.由于项目开发任务很重,时间也很紧,一直犹豫要不要写一个类似的websocket转发的小框架.犹豫再三,最终花了几天时间写完啦.源码请查">
+<meta name="keywords" content="java,springboot,springcloud,websocket">
+<meta property="og:type" content="article">
+<meta property="og:title" content="websocket转发小框架实践">
+<meta property="og:url" content="http://forever-and-ever.cn/websocket转发小框架实践/index.html">
+<meta property="og:site_name" content="Jeffrey&#39;s blog">
+<meta property="og:description" content="start&amp;emsp;&amp;emsp;之前写过介绍网上大神写的基于stomp协议的zuul-websocket组件,通过该组件支持网关websocket代理转发.但是我们在项目中的使用场景往往是非stomp协议的websocket转发,所以那个组件可能就无法直接使用啦.由于项目开发任务很重,时间也很紧,一直犹豫要不要写一个类似的websocket转发的小框架.犹豫再三,最终花了几天时间写完啦.源码请查">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-06-18T20:54:40.668Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="websocket转发小框架实践">
+<meta name="twitter:description" content="start&amp;emsp;&amp;emsp;之前写过介绍网上大神写的基于stomp协议的zuul-websocket组件,通过该组件支持网关websocket代理转发.但是我们在项目中的使用场景往往是非stomp协议的websocket转发,所以那个组件可能就无法直接使用啦.由于项目开发任务很重,时间也很紧,一直犹豫要不要写一个类似的websocket转发的小框架.犹豫再三,最终花了几天时间写完啦.源码请查">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Jeffrey&#39;s blog" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/img/myavatar.jpg">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>websocket转发小框架实践 | Jeffrey&#39;s blog</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script>
+        yiliaConfig.jquery_ui = [true, "//cdn.bootcss.com/jqueryui/1.10.4/jquery-ui.min.js", "//cdn.bootcss.com/jqueryui/1.10.4/css/jquery-ui.min.css"];
+    </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/myavatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">Silly Jeffrey</a></h1>
+        </hgroup>
+
+        
+        <p class="header-subtitle">You are more than a shadow.</p>
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>菜单</li>
+                        <li>标签</li>
+                        
+                        <li>友情链接</li>
+                        
+                        
+                        <li>关于我</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/akka/">akka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/consul/">consul</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/druid/">druid</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/eureka/">eureka</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/">https</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/idea/">idea</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/">java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rabbitmq/">rabbitmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/spring/">spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springboot/">springboot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/websocket/">websocket</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zookeeper/">zookeeper</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多线程/">多线程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步/">异步</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网关/">网关</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集合/">集合</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">start over.</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/myavatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">Silly Jeffrey</a></h1>
+            </hgroup>
+            
+            <p class="header-subtitle">You are more than a shadow.</p>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:ji459705636@163.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/ji4597056" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-websocket转发小框架实践" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/websocket转发小框架实践/" class="article-date">
+      <time datetime="2017-12-06T12:00:00.000Z" itemprop="datePublished">2017-12-06</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      websocket转发小框架实践
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/技术/">技术</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/springboot/">springboot</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/springcloud/">springcloud</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/websocket/">websocket</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="start"><a href="#start" class="headerlink" title="start"></a>start</h2><p>&emsp;&emsp;之前写过介绍网上大神写的基于stomp协议的zuul-websocket组件,通过该组件支持网关websocket代理转发.但是我们在项目中的使用场景往往是非stomp协议的websocket转发,所以那个组件可能就无法直接使用啦.由于项目开发任务很重,时间也很紧,一直犹豫要不要写一个类似的websocket转发的小框架.犹豫再三,最终花了几天时间写完啦.源码请查看<a href="https://github.com/ji4597056/websocket-forward" target="_blank" rel="external">spring-websocket-forward</a>.</p>
+<hr>
+<a id="more"></a>
+<hr>
+<h2 id="content"><a href="#content" class="headerlink" title="content"></a>content</h2><h3 id="基本目标"><a href="#基本目标" class="headerlink" title="基本目标"></a>基本目标</h3><ul>
+<li>server端打算直接使用<code>spring-boot-starter-websocket</code>.(重复造轮子没有任何意义)</li>
+<li>通过<code>application.yml</code>读取websocket配置,自动注册路由和对应的处理器</li>
+<li>client使用netty websocket client.</li>
+<li>集成spring cloud注册中心(Eureka,Consul,Zookeeper),通过service id获取服务地址列表</li>
+<li>websocket转发使用地址轮询策略</li>
+<li>需要灵活配置处理器,拦截器</li>
+<li>需要高扩展性</li>
+</ul>
+<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><p>&emsp;&emsp;由于github可以看到项目源码,所以不打算把代码都贴一遍,大概说一下设计思路吧.</p>
+<ul>
+<li><strong>server端路由配置</strong></li>
+</ul>
+<p>&emsp;&emsp;详见<code>WsForwardProperties</code>.<br>&emsp;&emsp;参考<code>zuul</code>的作法,配置时提供属性<code>serviceId</code>和<code>listOfServers</code>,<code>serviceId</code>主要用于从注册中心获取转发服务地址列表,当未设置该属性时,可以设置<code>listOfServers</code>直接获取具体转发服务地址列表.<br>&emsp;&emsp;由于<code>serverId</code>需要<code>spring cloud</code>相关注册中心组件支持,故引入<code>spring-cloud-commons</code>,其<code>DiscoveryClient</code>为注册中心获取服务地址的核心接口.<br>&emsp;&emsp;为了配置路由更加自由,并且不希望该组件仅仅为了弥补<code>zuul</code>对于websocket转发支持,所以提供了<code>prefix</code>作为服务端路由前缀以及<code>forwardPrefix</code>作为转发路由前缀.<br>&emsp;&emsp;对于转发地址列表的选取策略,就简单使用轮询策略,如果需要多种策略支持,可能需要<code>ribbon</code>组件的支持,暂时不打算依赖太多其他类库.</p>
+<ul>
+<li><strong>server和client的session交互</strong></li>
+</ul>
+<p>&emsp;&emsp;详见<code>AbstractWsServerHandler</code>.<br>&emsp;&emsp;server和client的session交互使用简单的循环引用,server和client分别保存对方的session,由于每次消息交互都是不同线程,所以server端不能使用<code>ThreadLocal</code>保存session,这里使用<code>Map</code>保存session.(key:sever session id, value:client channel).<br>&emsp;&emsp;当server端建立连接成功后,随即实例化client选取地址进行连接,并把server的session传递给client,这里可能有性能问题,需要进行优化.<br>&emsp;&emsp;当出现异常时,client和server同时close对方的session.</p>
+<ul>
+<li><strong>server handler实现</strong></li>
+</ul>
+<p>&emsp;&emsp;详见<code>DiscoveryForwardHandler</code>.<br>&emsp;&emsp;server handler设计会抽象类,提取<code>getForwardUrl()</code>和<code>setMessageFilter(MessageFilter messageFilter)</code>让子类继承实现.<code>MessgaeFilter</code>设计作为消息转换和消息过滤的接口.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">MessageFilter</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * convert from message,if null,not forward</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> fromMessage from  message</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> forward message</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function">Object <span class="title">fromMessage</span><span class="params">(AbstractWebSocketMessage fromMessage)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line"><span class="comment">     * convert to message,if null,not foward</span></div><div class="line"><span class="comment">     *</span></div><div class="line"><span class="comment">     * <span class="doctag">@param</span> toMessage to message</span></div><div class="line"><span class="comment">     * <span class="doctag">@return</span> forward message</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function">Object <span class="title">toMessage</span><span class="params">(WebSocketFrame toMessage)</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>&emsp;&emsp;初看这个接口很像spring的<code>MessageConvert</code>接口进行消息转换,不同的是这里设计的另一层目的是作为消息过滤,当返回null时就不会在server和client进行消息传递.<br>&emsp;&emsp;<code>getForwardUrl()</code>作为获取转发地址和路由的抽象接口,在<code>DiscoveryForwardHandler</code>中的实现是提取注册中心的服务地址列表进行负载均衡选取地址.如果有需求需要从数据库获取地址,重载该方法即可.</p>
+<ul>
+<li><strong>灵活配置handler,interceptor</strong></li>
+</ul>
+<p>&emsp;&emsp;详见<code>WsHandlerRegistration</code>.<br>&emsp;&emsp;设计之初,只考虑到配置全局<code>AbstractWsServerHandler</code>和<code>HandshakeInterceptor</code>,所有websocket路由都设置为全局的处理器和拦截器.但是后来感觉确实可能有需求不同的路由需要配置不同的处理器和拦截器.所以设计了一个注册器<code>WsHandlerRegistration</code>,声明该bean并且注册多个处理器和拦截器,然后就可以配置路由时设置<code>handlerClass</code>和<code>interceptorClasses</code>属性,配置处理器和拦截器的类名,该配置会覆盖全局配置.<br>&emsp;&emsp;注册器的设计很简单,感觉很不优雅,但是目前没想到其他好的处理方法,因为处理器和拦截器类的构造方法可能会有参数,所以简单的使用反射无法实现.以后有思路了会进行优化.</p>
+<h3 id="end"><a href="#end" class="headerlink" title="end"></a>end</h3><p>&emsp;&emsp;写这个小框架大概花了一周时间,当然一周内是边完成工作任务边写,有些地方设计的并不好,但是目前没想到好的处理方法.通过这次设计感觉自己对于spring的理解和使用还有待加强.设计模式和接口设计方面顿感书到用时方恨少,虽然以前看过很多设计模式相关的书籍,但是并没有达到灵活使用.以后会加强这方面能力的培养.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/websocket转发小框架实践/">websocket转发小框架实践</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">Silly Jeffrey</a></p>
+        <p><span>发布时间:</span>2017-12-06, 20:00:00</p>
+        <p><span>最后更新:</span>2018-06-19, 04:54:40</p>
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/websocket转发小框架实践/" title="websocket转发小框架实践">http://forever-and-ever.cn/websocket转发小框架实践/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://forever-and-ever.cn/websocket转发小框架实践/　　作者: Silly Jeffrey" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/CompletableFuture实践/">
+                    CompletableFuture实践
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/zuul实践之websocket支持/">
+                    zuul实践之websocket支持
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#start"><span class="toc-number">1.</span> <span class="toc-text">start</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#content"><span class="toc-number">2.</span> <span class="toc-text">content</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#基本目标"><span class="toc-number">2.1.</span> <span class="toc-text">基本目标</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#具体实现"><span class="toc-number">2.2.</span> <span class="toc-text">具体实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#end"><span class="toc-number">2.3.</span> <span class="toc-text">end</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"websocket转发小框架实践　| Jeffrey's blog　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+        <section class="youyan" id="comments">
+    <script>
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = 'http://v2.uyan.cc/code/uyan.js?uid=2124647';
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+    <div id="uyan_frame"></div>
+</section>
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/CompletableFuture实践/" title="上一篇: CompletableFuture实践">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/zuul实践之websocket支持/" title="下一篇: zuul实践之websocket支持">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/动态规划入门浅析/">动态规划入门浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/Spring循环依赖解析/">Spring循环依赖解析</a></li><li class="post-list-item"><a class="post-list-link" href="/DAG图实践浅析/">DAG图实践浅析</a></li><li class="post-list-item"><a class="post-list-link" href="/java并发之AQS框架解析/">java并发之AQS框架解析</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(四)之ConcurrentHashMap/">java集合启示录(四)之ConcurrentHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(三)之TreeMap/">java集合启示录(三)之TreeMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(二)之HashMap、LinkedHashMap/">java集合启示录(二)之HashMap、LinkedHashMap</a></li><li class="post-list-item"><a class="post-list-link" href="/java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList/">java集合启示录(一)之ArrayList、LinkedList、CopyOnWriteArrayList</a></li><li class="post-list-item"><a class="post-list-link" href="/一致性hash算法探究/">一致性hash算法探究</a></li><li class="post-list-item"><a class="post-list-link" href="/建立递归思想/">建立递归思想</a></li><li class="post-list-item"><a class="post-list-link" href="/mybatis+druid多数据源实践/">mybatis+druid多数据源实践</a></li><li class="post-list-item"><a class="post-list-link" href="/docker实践总结/">docker实践总结</a></li><li class="post-list-item"><a class="post-list-link" href="/服务注册中心的思考/">服务注册中心的思考</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringCloud实践之ribbon/">SpringCloud实践之ribbon</a></li><li class="post-list-item"><a class="post-list-link" href="/CompletableFuture实践/">CompletableFuture实践</a></li><li class="post-list-item"><a class="post-list-link" href="/websocket转发小框架实践/">websocket转发小框架实践</a></li><li class="post-list-item"><a class="post-list-link" href="/zuul实践之websocket支持/">zuul实践之websocket支持</a></li><li class="post-list-item"><a class="post-list-link" href="/Rabbitmq实践/">RabbitMq实践</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringBoot实践之异常处理/">SpringBoot实践之异常处理</a></li><li class="post-list-item"><a class="post-list-link" href="/小常识-idea如何打jar包/">小常识-idea如何打jar包</a></li><li class="post-list-item"><a class="post-list-link" href="/https踩坑/">https踩坑</a></li><li class="post-list-item"><a class="post-list-link" href="/SpringCloud实践之zuul/">SpringCloud实践之Zuul</a></li><li class="post-list-item"><a class="post-list-link" href="/Akka初探/">Akka初探</a></li><li class="post-list-item"><a class="post-list-link" href="/ThreadLocal浅析/">ThreadLocal浅析</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2017-2018 Silly Jeffrey
+            </div>
+            <div class="footer-right">
+                love you~ <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="本站到访数"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="本页阅读量"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+    <script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@
 title: zuul实践之websocket支持
 categories: 技术
 tags: [java,springcloud,websocket]
+date: 2017/11/14 20:00:00
 ---
 
 ## start

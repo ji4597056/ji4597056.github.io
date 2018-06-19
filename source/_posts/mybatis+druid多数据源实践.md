@@ -2,6 +2,7 @@
 title: mybatis+druid多数据源实践
 categories: 技术
 tags: [java,springboot,mybatis,druid]
+date: 2018/1/16 20:00:00
 ---
 
 ## start

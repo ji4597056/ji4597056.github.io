@@ -13,9 +13,9 @@ timezone:
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
 #url: http://yoursite.com
-url: forever-and-ever.cn
+url: http://forever-and-ever.cn
 root: /
-permalink: :year/:month/:day/:title/
+permalink: :title/
 permalink_defaults:
 
 # Directory
@@ -69,7 +69,8 @@ theme: yelee
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
-  type: git
+- type: baidu_url_submitter
+- type: git
   repo: git@github.com:ji4597056/ji4597056.github.io.git
 branch: master
 
@@ -85,3 +86,9 @@ feed:
 #sitemap
 sitemap:
   path: sitemap.xml
+
+baidu_url_submit:
+  count: 100
+  host: forever-and-ever.cn
+  token: t4hfqVq1PEL14z9Q
+  path: baidu_urls.txt

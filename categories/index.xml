@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Categories on Beautiful Hugo</title>
-    <link>https://username.github.io/categories/</link>
-    <description>Recent content in Categories on Beautiful Hugo</description>
+    <title>Categories on Jeffrey&#39;s Blog</title>
+    <link>https://ji4597056.github.io/categories/</link>
+    <description>Recent content in Categories on Jeffrey&#39;s Blog</description>
     <generator>Hugo</generator>
     <language>en</language>
-    <managingEditor>youremail@domain.com (Some Person)</managingEditor>
-    <webMaster>youremail@domain.com (Some Person)</webMaster>
-    <atom:link href="https://username.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <managingEditor>ji459705636@gmail.com (Jeffrey)</managingEditor>
+    <webMaster>ji459705636@gmail.com (Jeffrey)</webMaster>
+    <atom:link href="https://ji4597056.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>
